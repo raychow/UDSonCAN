@@ -1,0 +1,1493 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+#include "verrsrc.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "#include ""verrsrc.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)\r\n"
+    "LANGUAGE 4, 2\r\n"
+    "#include ""res\\UDSonCAN.rc2""  // 非 Microsoft Visual C++ 编辑的资源\r\n"
+    "#include ""l.CHS\\afxres.rc""      // 标准组件\r\n"
+    "#if !defined(_AFXDLL)\r\n"
+    "#include ""l.CHS\\afxprint.rc""        // 打印/打印预览资源\r\n"
+    "#include ""l.CHS\\afxribbon.rc""        // MFC 功能区和控件条资源\r\n"
+    "#endif\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\UDSonCAN.ico"
+IDR_UDSONCANTYPE        ICON                    "res\\UDSonCANDoc.ico"
+IDI_FILE_VIEW           ICON                    "res\\file_view.ico"
+IDI_FILE_VIEW_HC        ICON                    "res\\file_view_hc.ico"
+IDI_SERVICE_VIEW        ICON                    "res\\service_view.ico"
+IDI_SERVICE_VIEW_HC     ICON                    "res\\service_view_hc.ico"
+IDI_WATCH_WND           ICON                    "res\\watch_wnd.ico"
+IDI_WATCH_WND_HC        ICON                    "res\\watch_wnd_hc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+IDR_MAINFRAME_256       BITMAP                  "res\\Toolbar256.bmp"
+IDR_SORT                BITMAP                  "res\\sort.bmp"
+IDB_SORT_24             BITMAP                  "res\\sort_hc.bmp"
+IDB_FILE_VIEW           BITMAP                  "res\\fileview.bmp"
+IDB_FILE_VIEW_24        BITMAP                  "res\\fileview_hc.bmp"
+IDB_SERVICE_VIEW        BITMAP                  "res\\serviceview.bmp"
+IDB_SERVICE_VIEW_24     BITMAP                  "res\\serviceview_hc.bmp"
+IDR_EXPLORER            BITMAP                  "res\\explorer.bmp"
+IDB_EXPLORER_24         BITMAP                  "res\\explorer_hc.bmp"
+IDR_MENU_IMAGES         BITMAP                  "res\\menuimages.bmp"
+IDB_MENU_IMAGES_24      BITMAP                  "res\\menuimages_hc.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR 16, 15
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE
+    SEPARATOR
+    BUTTON      ID_EDIT_CUT
+    BUTTON      ID_EDIT_COPY
+    BUTTON      ID_EDIT_PASTE
+    SEPARATOR
+    BUTTON      ID_FILE_PRINT
+    BUTTON      ID_APP_ABOUT
+END
+
+IDR_MAINFRAME_256 TOOLBAR 16, 15
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE
+    SEPARATOR
+    BUTTON      ID_DIAGNOSTIC_BEGINDIAGNOSTIC
+    BUTTON      ID_DIAGNOSTIC_STOPDIAGNOSTIC
+    SEPARATOR
+    BUTTON      ID_DIAGNOSTIC_EXECUTE
+    SEPARATOR
+    BUTTON      ID_TOOLS_TEST
+    SEPARATOR
+    BUTTON      ID_APP_ABOUT
+END
+
+IDR_SORT TOOLBAR 16, 15
+BEGIN
+    BUTTON      ID_SORT_MENU
+    BUTTON      ID_NEW_FOLDER
+END
+
+IDR_EXPLORER TOOLBAR 16, 15
+BEGIN
+    BUTTON      ID_PROPERTIES
+END
+
+IDR_MENU_IMAGES TOOLBAR 16, 15
+BEGIN
+    BUTTON      ID_WINDOW_MANAGER
+    SEPARATOR
+    BUTTON      ID_WINDOW_CASCADE
+    BUTTON      ID_WINDOW_TILE_HORZ
+    BUTTON      ID_TOOLS_MACRO
+    BUTTON      ID_SORTING_SORTALPHABETIC
+    BUTTON      ID_SORTING_SORTBYTYPE
+    BUTTON      ID_SORTING_SORTBYACCESS
+    BUTTON      ID_SORTING_GROUPBYTYPE
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU
+BEGIN
+    POPUP "文件(&F)"
+    BEGIN
+        MENUITEM "新建(&N)\tCtrl+N",              ID_FILE_NEW
+        MENUITEM "打开(&O)...\tCtrl+O",           ID_FILE_OPEN
+        MENUITEM "保存(&S)\tCtrl+S",              ID_FILE_SAVE
+        MENUITEM "另存为(&A)...",                  ID_FILE_SAVE_AS
+        MENUITEM SEPARATOR
+        MENUITEM "最近的文件",                       ID_FILE_MRU_FILE1
+        MENUITEM SEPARATOR
+        MENUITEM "退出(&X)",                      ID_APP_EXIT
+    END
+    POPUP "诊断(&D)"
+    BEGIN
+        MENUITEM "启动诊断(&B)",                    ID_DIAGNOSTIC_BEGINDIAGNOSTIC
+        MENUITEM "停止诊断(&S)",                    ID_DIAGNOSTIC_STOPDIAGNOSTIC
+        MENUITEM SEPARATOR
+        MENUITEM "执行(&E)",                      ID_DIAGNOSTIC_EXECUTE
+        MENUITEM SEPARATOR
+        MENUITEM "暂停监视(W)",                     ID_DIAGNOSTIC_PAUSEWATCH
+        MENUITEM "清除监视(&C)",                    ID_DIAGNOSTIC_CLEARWATCH
+    END
+    POPUP "工具(&T)"
+    BEGIN
+        MENUITEM "功能测试(&F)",                    ID_TOOLS_TEST
+    END
+    POPUP "设定(&S)"
+    BEGIN
+        MENUITEM "CAN 设备设定(&C)",                ID_CONFIG_PHYSICALLAYER
+        MENUITEM "网络层参数设定(&N)",                 ID_CONFIG_NETWORKLAYER
+        MENUITEM "应用层参数设定(&A)",                 ID_CONFIG_APPLICATIONLAYER
+    END
+    POPUP "视图(&V)"
+    BEGIN
+        POPUP "工具栏和停靠窗口(&T)"
+        BEGIN
+            MENUITEM "<占位符>",                       ID_VIEW_TOOLBAR
+        END
+        MENUITEM "状态栏(&S)",                     ID_VIEW_STATUS_BAR
+        POPUP "应用程序外观(&A)"
+        BEGIN
+            MENUITEM "Windows 2000(&2)",            ID_VIEW_APPLOOK_WIN_2000
+            MENUITEM "Office XP(&X)",               ID_VIEW_APPLOOK_OFF_XP
+            MENUITEM "Windows XP(&W)",              ID_VIEW_APPLOOK_WIN_XP
+            MENUITEM "Office 2003(&3)",             ID_VIEW_APPLOOK_OFF_2003
+            MENUITEM "Visual Studio 200&5",         ID_VIEW_APPLOOK_VS_2005
+            MENUITEM "Visual Studio 200&8",         ID_VIEW_APPLOOK_VS_2008
+            POPUP "Office 2007(&7)"
+            BEGIN
+                MENUITEM "蓝色样式(&B)",                    ID_VIEW_APPLOOK_OFF_2007_BLUE
+                MENUITEM "黑色样式(&L)",                    ID_VIEW_APPLOOK_OFF_2007_BLACK
+                MENUITEM "银色样式(&S)",                    ID_VIEW_APPLOOK_OFF_2007_SILVER
+                MENUITEM "水绿色样式(&A)",                   ID_VIEW_APPLOOK_OFF_2007_AQUA
+            END
+        END
+    END
+    POPUP "帮助(&H)"
+    BEGIN
+        MENUITEM "关于 UDSonCAN(&A)...",          ID_APP_ABOUT
+    END
+END
+
+IDR_POPUP_EDIT MENU
+BEGIN
+    POPUP "编辑"
+    BEGIN
+        MENUITEM "剪切(&T)\tCtrl+X",              ID_EDIT_CUT
+        MENUITEM "复制(&C)\tCtrl+C",              ID_EDIT_COPY
+        MENUITEM "粘贴(&P)\tCtrl+V",              ID_EDIT_PASTE
+    END
+END
+
+IDR_POPUP_SORT MENU
+BEGIN
+    POPUP "排序"
+    BEGIN
+        MENUITEM "按字母顺序排序(&S)",                 ID_SORTING_SORTALPHABETIC
+        MENUITEM "按类型排序(&T)",                   ID_SORTING_SORTBYTYPE
+        MENUITEM "按访问排序(&E)",                   ID_SORTING_SORTBYACCESS
+        MENUITEM "按类型分组(&Y)",                   ID_SORTING_GROUPBYTYPE
+    END
+END
+
+IDR_POPUP_EXPLORER MENU
+BEGIN
+    POPUP "资源管理器"
+    BEGIN
+        MENUITEM "打开(&O)",                      ID_OPEN
+        MENUITEM "打开方式(&W)....",                ID_OPEN_WITH
+        MENUITEM SEPARATOR
+        MENUITEM "编译(&C)",                      ID_DUMMY_COMPILE
+        MENUITEM SEPARATOR
+        MENUITEM "剪切(&T)\tCtrl+X",              ID_EDIT_CUT
+        MENUITEM "复制(&C)\tCtrl+C",              ID_EDIT_COPY
+        MENUITEM "移除(&R)",                      ID_EDIT_CLEAR
+        MENUITEM SEPARATOR
+        MENUITEM "属性(&P)...",                   ID_PROPERTIES
+    END
+END
+
+IDR_WATCH_POPUP MENU
+BEGIN
+    POPUP "弹出项"
+    BEGIN
+        MENUITEM "复制(&C)",                      ID_EDIT_COPY
+        MENUITEM "清除(&C)",                      ID_EDIT_CLEAR
+        MENUITEM SEPARATOR
+        MENUITEM "隐藏(&H)",                      ID_VIEW_NETWORKLAYERWATCHWND
+    END
+END
+
+IDR_HELP_MENU MENU
+BEGIN
+    MENUITEM "关于 UDSonCAN(&A)...",          ID_APP_ABOUT
+END
+
+IDR_THEME_MENU MENU
+BEGIN
+    MENUITEM "Office 2007 (蓝色样式)(&B)",      ID_VIEW_APPLOOK_OFF_2007_BLUE
+    MENUITEM "Office 2007 (黑色样式)(&L)",      ID_VIEW_APPLOOK_OFF_2007_BLACK
+    MENUITEM "Office 2007 (银色样式)(&S)",      ID_VIEW_APPLOOK_OFF_2007_SILVER
+    MENUITEM "Office 2007 (水绿色样式)(&A)",     ID_VIEW_APPLOOK_OFF_2007_AQUA
+    MENUITEM "Windows 7(&D)",               ID_VIEW_APPLOOK_WINDOWS_7
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS
+BEGIN
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL
+    "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL
+    VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT
+    VK_DELETE,      ID_EDIT_CUT,            VIRTKEY, SHIFT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL
+    VK_INSERT,      ID_EDIT_PASTE,          VIRTKEY, SHIFT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY 
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "关于 UDSonCAN"
+FONT 9, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,20,20
+    LTEXT           "UDSonCAN，1.0 版",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2013",IDC_STATIC,42,26,114,8
+    DEFPUSHBUTTON   "确定",IDOK,113,41,50,14,WS_GROUP
+END
+
+IDD_TEST DIALOGEX 0, 0, 309, 177
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "测试窗口"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "OpenDevice",IDC_BUTTON_TEST_OPENDEVICE,6,6,50,14
+    PUSHBUTTON      "CloseDevice",IDC_BUTTON_TEST_CLOSEDEVICE,60,6,50,14
+    PUSHBUTTON      "OpenCAN",IDC_BUTTON_TEST_OPENCAN,114,6,50,14
+    PUSHBUTTON      "ResetCAN",IDC_BUTTON_TEST_RESETCAN,168,6,50,14
+    LTEXT           "SA:",IDC_STATIC,6,24,12,8
+    EDITTEXT        IDC_EDIT_TEST_NREQUESTSA,42,24,66,14,ES_AUTOHSCROLL
+    LTEXT           "TA:",IDC_STATIC,114,24,12,8
+    EDITTEXT        IDC_EDIT_TEST_NREQUESTTA,150,24,66,14,ES_AUTOHSCROLL
+    LTEXT           "Data:",IDC_STATIC,6,42,19,8
+    EDITTEXT        IDC_EDIT_TEST_NREQUESTDATA,42,42,174,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "N.Request",IDC_BUTTON_TEST_NREQUEST,222,42,50,14
+    LTEXT           "ID:",IDC_STATIC,6,60,11,8
+    EDITTEXT        IDC_EDIT_TEST_FAKESFID,42,60,174,14,ES_AUTOHSCROLL
+    LTEXT           "Data:",IDC_STATIC,6,78,19,8
+    EDITTEXT        IDC_EDIT_TEST_FAKESFREQUESTDATA,42,78,174,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Fake.SF",IDC_BUTTON_TEST_FAKESF,222,78,50,14
+    PUSHBUTTON      "Fake.MF",IDC_BUTTON_TEST_FAKEMF,6,96,50,14
+    PUSHBUTTON      "Fake.FF",IDC_BUTTON_TEST_FAKEFF,60,96,50,14
+    PUSHBUTTON      "Fake.CF",IDC_BUTTON_TEST_FAKECF,114,96,50,14
+    PUSHBUTTON      "Fake.FC",IDC_BUTTON_TEST_FAKEFC,168,96,50,14
+    DEFPUSHBUTTON   "确定",IDOK,198,156,50,14
+    PUSHBUTTON      "取消",IDCANCEL,252,156,50,14
+END
+
+IDD_CANCONFIG DIALOGEX 0, 0, 247, 250
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "CAN 设备设定"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Sample-mask-0001",IDC_MFCMASKEDEDIT_BUG,"MfcMaskedEdit",NOT WS_VISIBLE | WS_BORDER | WS_TABSTOP | 0x80,48,88,10,7
+    GROUPBOX        "设备选择",IDC_STATIC,7,7,233,75
+    LTEXT           "设备类型：",IDC_STATIC,17,22,41,8
+    COMBOBOX        IDC_COMBO_CANCONFIG_DEVICETYPE,61,20,169,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "设备索引：",IDC_STATIC,17,42,41,8,NOT WS_GROUP
+    COMBOBOX        IDC_COMBO_CANCONFIG_DEVICEINDEX,61,40,169,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "CAN 索引：",IDC_STATIC,17,62,41,8,NOT WS_GROUP
+    COMBOBOX        IDC_COMBO_CANCONFIG_CANINDEX,61,60,169,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "验收码：",IDC_STATIC,17,103,41,8
+    LTEXT           "0x",IDC_STATIC,61,103,9,8,NOT WS_GROUP
+    CONTROL         "aaaaaaaa",IDC_MFCMASKEDEDIT_CANCONFIG_ACCCODE,
+                    "MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,73,100,157,14
+    LTEXT           "屏蔽码：",IDC_STATIC,17,123,41,8,NOT WS_GROUP
+    LTEXT           "0x",IDC_STATIC,61,123,9,8,NOT WS_GROUP
+    CONTROL         "aaaaaaaa",IDC_MFCMASKEDEDIT_CANCONFIG_ACCMASK,
+                    "MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,73,121,157,14
+    LTEXT           "波特率：",IDC_STATIC,17,143,41,8,NOT WS_GROUP
+    COMBOBOX        IDC_COMBO_CANCONFIG_BAUDRATETYPE,61,141,169,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "定时器 0：",IDC_STATIC,17,163,41,8,NOT WS_GROUP
+    LTEXT           "0x",IDC_STATIC,61,163,9,8,NOT WS_GROUP
+    CONTROL         "aa",IDC_MFCMASKEDEDIT_CANCONFIG_TIMING0,"MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,73,161,43,14
+    LTEXT           "定时器 1：",IDC_STATIC,136,163,39,8,NOT WS_GROUP
+    LTEXT           "0x",IDC_STATIC,178,163,9,8,NOT WS_GROUP
+    CONTROL         "aa",IDC_MFCMASKEDEDIT_CANCONFIG_TIMING1,"MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,190,161,40,14
+    GROUPBOX        "参数设定",IDC_STATIC,7,88,233,135
+    LTEXT           "滤波方式：",IDC_STATIC,17,183,41,8,NOT WS_GROUP
+    COMBOBOX        IDC_COMBO_CANCONFIG_FILTER,61,181,169,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "工作模式：",IDC_STATIC,17,202,41,8,NOT WS_GROUP
+    COMBOBOX        IDC_COMBO_CANCONFIG_MODE,61,201,169,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "确定",IDOK,134,229,50,14
+    PUSHBUTTON      "取消",IDCANCEL,190,229,50,14
+END
+
+IDD_APPLICATIONLAYERCONFIG DIALOGEX 0, 0, 247, 266
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "应用层设定"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Sample-mask-0001",IDC_MFCMASKEDEDIT_BUG,"MfcMaskedEdit",NOT WS_VISIBLE | WS_BORDER | WS_TABSTOP | 0x80,69,7,10,7
+    GROUPBOX        "地址 [Hex]",IDC_STATIC,7,7,233,109
+    LTEXT           "测试器物理地址：",IDC_STATIC,17,22,65,8
+    CONTROL         "aa",IDC_MFCMASKEDEDIT_APPLICATIONLAYERCONFIG_TESTERPHYSICALADDRESS,
+                    "MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,98,20,132,14
+    LTEXT           "ECU 地址：",IDC_STATIC,17,42,40,8
+    CONTROL         "aa",IDC_MFCMASKEDEDIT_APPLICATIONLAYERCONFIG_ECUADDRESS,
+                    "MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,98,40,132,14
+    CONTROL         "这是一个功能地址",IDC_CHECK_APPLICATIONLAYERCONFIG_ECUFUNCTIONALADDRESS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,98,60,80,10
+    CONTROL         "远程诊断",IDC_CHECK_APPLICATIONLAYERCONFIG_REMOTEDIAGNOSTIC,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,76,48,10
+    LTEXT           "远程诊断地址：",IDC_STATIC,17,94,57,8
+    CONTROL         "aa",IDC_MFCMASKEDEDIT_APPLICATIONLAYERCONFIG_REMOTEDIAGNOSTICADDRESS,
+                    "MfcMaskedEdit",WS_BORDER | WS_TABSTOP | 0x88,98,92,132,14
+    GROUPBOX        "定时参数 [ms]",IDC_STATIC,7,122,233,117
+    LTEXT           "P2[CAN_Client]：",IDC_STATIC,17,137,58,8
+    EDITTEXT        IDC_EDIT_APPLICATIONLAYERCONFIG_P2CANCLIENT,98,135,132,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "P2*[CAN_Client]：",IDC_STATIC,17,157,62,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_APPLICATIONLAYERCONFIG_P2SCANCLIENT,98,155,132,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "P3[CAN_Client_Phys]：",IDC_STATIC,17,177,78,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_APPLICATIONLAYERCONFIG_P3CANCLIENTPHYS,98,175,132,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "P3[CAN_Client_Func]：",IDC_STATIC,17,197,78,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_APPLICATIONLAYERCONFIG_P3SCANCLIENTFUNC,98,195,132,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "S3[Client]：",IDC_STATIC,17,217,40,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_APPLICATIONLAYERCONFIG_S3CLIENT,98,215,132,14,ES_AUTOHSCROLL | ES_NUMBER
+    DEFPUSHBUTTON   "确定",IDOK,133,245,50,14
+    PUSHBUTTON      "取消",IDCANCEL,190,245,50,14
+END
+
+IDD_NETWORKLAYERCONFIG DIALOGEX 0, 0, 247, 271
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "网络层设定"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "工作模式：",IDC_STATIC,7,9,41,8
+    COMBOBOX        IDC_COMBO_NETWORKLAYERCONFIG_WORKMODE,63,7,177,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "流控制帧",IDC_STATIC,7,25,233,77
+    LTEXT           "连续帧发送间隔：",IDC_STATIC,17,40,65,8
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_SEPARATIONTIMEMIN,108,38,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "块大小：",IDC_STATIC,17,60,33,8
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_BLOCKSIZE,108,58,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "FC.WAIT 最大发送计数：",IDC_STATIC,17,80,88,8
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_FCWAITTRANSMISSIONMAX,108,78,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "定时参数 [ms]",IDC_STATIC,7,108,233,137
+    LTEXT           "N_As：",IDC_STATIC,17,124,26,8
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_NAS,108,121,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "N_Ar：",IDC_STATIC,17,143,25,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_NAR,108,141,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "N_Bs：",IDC_STATIC,17,163,25,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_NBS,108,161,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "N_Br：",IDC_STATIC,17,183,24,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_NBR,108,181,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "N_Cs：",IDC_STATIC,17,203,26,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_NCS,108,201,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "N_Cr：",IDC_STATIC,17,223,25,8,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_NETWORKLAYERCONFIG_NCR,108,221,122,14,ES_AUTOHSCROLL | ES_NUMBER
+    DEFPUSHBUTTON   "确定",IDOK,136,251,50,14
+    PUSHBUTTON      "取消",IDCANCEL,190,251,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "CompanyName", "Ray Chow"
+            VALUE "FileDescription", "UDSonCAN"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "UDSonCAN.exe"
+            VALUE "LegalCopyright", "TODO: (C) Ray Chow。保留所有权利。"
+            VALUE "OriginalFilename", "UDSonCAN.exe"
+            VALUE "ProductName", "TODO: <产品名>"
+            VALUE "ProductVersion", "1.0.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+
+    IDD_TEST, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 170
+    END
+
+    IDD_CANCONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 240
+        VERTGUIDE, 17
+        VERTGUIDE, 61
+        VERTGUIDE, 73
+        VERTGUIDE, 116
+        VERTGUIDE, 124
+        VERTGUIDE, 190
+        VERTGUIDE, 230
+        VERTGUIDE, 240
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 243
+        HORZGUIDE, 20
+        HORZGUIDE, 40
+        HORZGUIDE, 60
+        HORZGUIDE, 82
+        HORZGUIDE, 88
+        HORZGUIDE, 100
+        HORZGUIDE, 121
+        HORZGUIDE, 141
+        HORZGUIDE, 161
+        HORZGUIDE, 181
+        HORZGUIDE, 201
+        HORZGUIDE, 223
+    END
+
+    IDD_APPLICATIONLAYERCONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 240
+        VERTGUIDE, 17
+        VERTGUIDE, 47
+        VERTGUIDE, 98
+        VERTGUIDE, 140
+        VERTGUIDE, 230
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 259
+        HORZGUIDE, 20
+        HORZGUIDE, 40
+        HORZGUIDE, 60
+        HORZGUIDE, 76
+        HORZGUIDE, 92
+        HORZGUIDE, 116
+        HORZGUIDE, 122
+        HORZGUIDE, 135
+        HORZGUIDE, 155
+        HORZGUIDE, 175
+        HORZGUIDE, 195
+        HORZGUIDE, 215
+        HORZGUIDE, 239
+        HORZGUIDE, 245
+    END
+
+    IDD_NETWORKLAYERCONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 240
+        VERTGUIDE, 17
+        VERTGUIDE, 108
+        VERTGUIDE, 230
+        VERTGUIDE, 240
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 264
+        HORZGUIDE, 25
+        HORZGUIDE, 38
+        HORZGUIDE, 58
+        HORZGUIDE, 78
+        HORZGUIDE, 102
+        HORZGUIDE, 108
+        HORZGUIDE, 121
+        HORZGUIDE, 141
+        HORZGUIDE, 161
+        HORZGUIDE, 181
+        HORZGUIDE, 201
+        HORZGUIDE, 221
+        HORZGUIDE, 245
+        HORZGUIDE, 251
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_CANCONFIG DLGINIT
+BEGIN
+    IDC_MFCMASKEDEDIT_BUG, 0x37c, 200, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x6122, 0x6161, 0x6161, 
+0x2d61, 0x6363, 0x6363, 0x642d, 0x6464, 0x2264, 0x2f3c, 0x464d, 0x4d43, 
+0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 0x3c3e, 0x464d, 
+0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 
+0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x5f5f, 0x5f5f, 0x2d5f, 0x5f5f, 
+0x5f5f, 0x5f2d, 0x5f5f, 0x225f, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 
+0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 
+0x3e65, 
+    IDC_MFCMASKEDEDIT_CANCONFIG_ACCCODE, 0x37c, 242, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x2a2a, 0x2a2a, 
+0x2a2a, 0x222a, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x614d, 0x6b73, 0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 
+0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 
+0x5f22, 0x5f5f, 0x5f5f, 0x5f5f, 0x225f, 0x2f3c, 0x464d, 0x4d43, 0x7361, 
+0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 0x6d65, 0x6c70, 
+0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 
+0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 0x223e, 0x2230, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6544, 0x6166, 
+0x6c75, 0x4374, 0x6168, 0x3e72, 
+    IDC_MFCMASKEDEDIT_CANCONFIG_ACCMASK, 0x37c, 242, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x2a2a, 0x2a2a, 
+0x2a2a, 0x222a, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x614d, 0x6b73, 0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 
+0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 
+0x5f22, 0x5f5f, 0x5f5f, 0x5f5f, 0x225f, 0x2f3c, 0x464d, 0x4d43, 0x7361, 
+0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 0x6d65, 0x6c70, 
+0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 
+0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 0x223e, 0x2230, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6544, 0x6166, 
+0x6c75, 0x4374, 0x6168, 0x3e72, 
+    IDC_MFCMASKEDEDIT_CANCONFIG_TIMING0, 0x37c, 230, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x222a, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 
+0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 
+0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x225f, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 
+0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 
+0x223e, 0x2230, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x6544, 0x6166, 0x6c75, 0x4374, 0x6168, 0x3e72, 
+    IDC_MFCMASKEDEDIT_CANCONFIG_TIMING1, 0x37c, 230, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x222a, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 
+0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 
+0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x225f, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 
+0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 
+0x223e, 0x2230, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x6544, 0x6166, 0x6c75, 0x4374, 0x6168, 0x3e72, 
+    0
+END
+
+IDD_APPLICATIONLAYERCONFIG DLGINIT
+BEGIN
+    IDC_MFCMASKEDEDIT_BUG, 0x37c, 200, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x6122, 0x6161, 0x6161, 
+0x2d61, 0x6363, 0x6363, 0x642d, 0x6464, 0x2264, 0x2f3c, 0x464d, 0x4d43, 
+0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 0x3c3e, 0x464d, 
+0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 
+0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x5f5f, 0x5f5f, 0x2d5f, 0x5f5f, 
+0x5f5f, 0x5f2d, 0x5f5f, 0x225f, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 
+0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 
+0x3e65, 
+    IDC_MFCMASKEDEDIT_APPLICATIONLAYERCONFIG_TESTERPHYSICALADDRESS, 0x37c, 230, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x222a, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 
+0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 
+0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x225f, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 
+0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 
+0x223e, 0x2230, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x6544, 0x6166, 0x6c75, 0x4374, 0x6168, 0x3e72, 
+    IDC_MFCMASKEDEDIT_APPLICATIONLAYERCONFIG_ECUADDRESS, 0x37c, 230, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x222a, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 
+0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 
+0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x225f, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 
+0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 
+0x223e, 0x2230, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x6544, 0x6166, 0x6c75, 0x4374, 0x6168, 0x3e72, 
+    IDC_MFCMASKEDEDIT_APPLICATIONLAYERCONFIG_REMOTEDIAGNOSTICADDRESS, 0x37c, 230, 0
+0x4d3c, 0x4346, 0x614d, 0x6b73, 0x6465, 0x6445, 0x7469, 0x535f, 0x6c65, 
+0x6365, 0x4274, 0x4779, 0x6f72, 0x7075, 0x463e, 0x4c41, 0x4553, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6553, 0x656c, 
+0x7463, 0x7942, 0x7247, 0x756f, 0x3e70, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x4d5f, 0x7361, 0x3e6b, 0x2a22, 0x222a, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x614d, 0x6b73, 
+0x3c3e, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 
+0x7570, 0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x5f22, 0x225f, 0x2f3c, 
+0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 0x5f74, 0x6e49, 0x7570, 
+0x5474, 0x6d65, 0x6c70, 0x7461, 0x3e65, 0x4d3c, 0x4346, 0x614d, 0x6b73, 
+0x6465, 0x6445, 0x7469, 0x445f, 0x6665, 0x7561, 0x746c, 0x6843, 0x7261, 
+0x223e, 0x2230, 0x2f3c, 0x464d, 0x4d43, 0x7361, 0x656b, 0x4564, 0x6964, 
+0x5f74, 0x6544, 0x6166, 0x6c75, 0x4374, 0x6168, 0x3e72, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDP_OLE_INIT_FAILED     "OLE 初始化失败。请确保 OLE 库是正确的版本。"
+    IDS_SERVICEVIEW_DIAGNOSTICSERVICE "诊断服务"
+    IDS_SERVICEVIEW_DOWNLOAD "下载"
+    IDS_SERVICEVIEW_TEST    "测试"
+    IDS_DIAGNOSTIC_ITEMFORMAT "($%.2X) %s"
+    IDS_DIAGNOSTIC_BYTEFORMAT "%.2X"
+    IDS_DIAGNOSTIC_PDU      "PDU"
+    IDS_DIAGNOSTIC_SCANFORMAT "($%X)"
+    IDS_SERVICEDETAIL_RELATEDSECTIONS "Related Sections"
+    IDS_CANCONFIG_PATH      "CANConfig.xml"
+    IDS_FILTER_SINGLE       "单滤波"
+    IDS_FILTER_DUAL         "双滤波"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSUBFUNCTION_SETTIMINGPARAMETERSTODEFAULTVALUES 
+                            "setTimingParametersToDefaultValues"
+    IDS_DIAGNOSTICSUBFUNCTION_SETTIMINGPARAMETERSTOGIVENVALUES 
+                            "setTimingParametersToGivenValues"
+    IDS_DIAGNOSTICSUBFUNCTION_SOFTRESET "softReset"
+    IDS_DIAGNOSTICSUBFUNCTION_STARTRESPONSEONEVENT "startResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_STARTROUTINE "startRoutine"
+    IDS_DIAGNOSTICSUBFUNCTION_STOPRESPONSEONEVENT "stopResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_STOPROUTINE "stopRoutine"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT "storeEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_TRANSITIONBAUDRATE 
+                            "verifyBaudRateTransitionWithSpecificBaudRate"
+    IDS_DIAGNOSTICSUBFUNCTION_VERIFYBAUDRATETRANSITIONWITHFIXEDBAUDRATE 
+                            "verifyBaudRateTransitionWithFixedBaudRate"
+    IDS_DIAGNOSTICSUBFUNCTION_VERIFYBAUDRATETRANSITIONWITHSPECIFICBAUDRATE 
+                            "verifyBaudRateTransitionWithSpecificBaudRate"
+    IDS_DIAGNOSTICSUBFUNCTION_ZEROSUBFUNCTION "zeroFunction"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_STOPRESPONSEONEVENT 
+                            "doNotStoreEvent / stopResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_ONDTCSTATUSCHANGE 
+                            "doNotStoreEvent / onDTCStatusChange"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_ONTIMERINTERRUPT 
+                            "doNotStoreEvent / onTimerInterrupt"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_ONCHANGEOFDATAIDENTIFIER 
+                            "doNotStoreEvent / onChangeOfDataIdentifier"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSECTION_DIAGNOSTICSESSIONTYPE "diagnosticSessionType"
+    IDS_DIAGNOSTICSECTION_DTCSETTINGTYPE "DTCSettingType"
+    IDS_DIAGNOSTICSECTION_EVENTTYPE "eventType"
+    IDS_DIAGNOSTICSECTION_GROUPOFDTC "groupOfDTC"
+    IDS_DIAGNOSTICSECTION_LINKCONTROLTYPE "linkControlType"
+    IDS_DIAGNOSTICSECTION_MEMORYADDRESS "memoryAddress"
+    IDS_DIAGNOSTICSECTION_MEMORYSIZE "memorySize"
+    IDS_DIAGNOSTICSECTION_PERIODICDATAIDENTIFIER "periodicDataIdentifier"
+    IDS_DIAGNOSTICSECTION_RESETTYPE "resetType"
+    IDS_DIAGNOSTICSECTION_ROUTINECONTROLOPTIONRECORD 
+                            "routineControlOptionRecord"
+    IDS_DIAGNOSTICSECTION_ROUTINECONTROLTYPE "routineControlType"
+    IDS_DIAGNOSTICSECTION_ROUTINEIDENTIFIER "routineIdentifier"
+    IDS_DIAGNOSTICSECTION_SECURITYACCESSTYPE "securityAccessType"
+    IDS_DIAGNOSTICSECTION_STORAGESTATE "storageState"
+    IDS_DIAGNOSTICSECTION_SUBFUNCTION "sub-function"
+    IDS_DIAGNOSTICSECTION_TIMINGPARAMETERACCESSTYPE 
+                            "timingParameterAccessType"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_LINKBAUDRATERECORD "linkBaudRateRecord"
+    IDS_DIAGNOSTICSUBFUNCTION_CLEARDYNAMICALLYDEFINEDDATAIDENTIFIER 
+                            "clearDynamicallyDefinedDataIdentifier"
+    IDS_DIAGNOSTICSUBFUNCTION_CLEARRESPONSEONEVENT "clearResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_DEFINEBYIDENTIFIER "defineByIdentifier"
+    IDS_DIAGNOSTICSUBFUNCTION_DEFINEBYMEMORYADDRESS "defineByMemoryAddress"
+    IDS_DIAGNOSTICSUBFUNCTION_DEFUALTSESSION "defaultSession"
+    IDS_DIAGNOSTICSUBFUNCTION_DISABLERAPIDPOWERSHUTDOWN 
+                            "disableRapidPowerShutDown"
+    IDS_DIAGNOSTICSUBFUNCTION_DISABLERXANDENABLETX "disableRxAndEnableTx"
+    IDS_DIAGNOSTICSUBFUNCTION_DISABLERXANDTX "disableRxAndTx"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT "doNotStoreEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_ENABLERAPIDPOWERSHUTDOWN 
+                            "enableRapidPowerShutDown"
+    IDS_DIAGNOSTICSUBFUNCTION_ENABLERXANDDISABLETX "enableRxAndDisableTx"
+    IDS_DIAGNOSTICSUBFUNCTION_ENABLERXANDTX "enableRxAndTx"
+    IDS_DIAGNOSTICSUBFUNCTION_EXTENDDIAGNOSTICSESSION 
+                            "extendedDiagnosticSession"
+    IDS_DIAGNOSTICSUBFUNCTION_HARDRESET "hardReset"
+    IDS_DIAGNOSTICSUBFUNCTION_KEYOFFONRESET "keyOffOnReset"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSUBFUNCTION_OFF "off"
+    IDS_DIAGNOSTICSUBFUNCTION_ON "on"
+    IDS_DIAGNOSTICSUBFUNCTION_ONCHANGEOFDATAIDENTIFIER 
+                            "onChangeOfDataIdentifier"
+    IDS_DIAGNOSTICSUBFUNCTION_ONCOMPARISONOFVALUES "onComparisonOfValues"
+    IDS_DIAGNOSTICSUBFUNCTION_ONDTCSTATUSCHANGE "onDTCStatusChange"
+    IDS_DIAGNOSTICSUBFUNCTION_ONTIMERINTERRUPT "onTimerInterrupt"
+    IDS_DIAGNOSTICSUBFUNCTION_PROGRAMMINGSESSION "programmingSession"
+    IDS_DIAGNOSTICSUBFUNCTION_READCURRENTLYACTIVETIMINGPARAMETERS 
+                            "readCurrentlyActiveTimingParameters"
+    IDS_DIAGNOSTICSUBFUNCTION_READEXTENDEDTIMINGPARAMETERSET 
+                            "readExtendedTimingParameterSet"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTACTIVATEDEVENTS "reportActivatedEvents"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCBYSEVERITYMASKRECORD 
+                            "reportDTCBySeverityMaskRecord"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCBYSTATUSMASK "reportDTCByStatusMask"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCEXTENDEDDATARECORDBYDTCNUMBER 
+                            "reportDTCExtendedDataRecordByDTCNumber"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCFAULTDETECTIONCOUNTER 
+                            "reportDTCFaultDetectionCounter"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCSNAPSHOTIDENTIFICATION 
+                            "reportDTCSnapshotIdentification"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCSNAPSHOTRECORDBYDTCNUMBER 
+                            "reportDTCSnapshotRecordByDTCNumber"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSERVICE_DIAGNOSTICSESSIONCONTROL "DiagnosticSessionControl"
+    IDS_DIAGNOSTICSERVICE_ECURESET "ECUReset"
+    IDS_DIAGNOSTICSERVICE_CLEARDIAGNOSTICINFORMATION 
+                            "ClearDiagnosticInformation"
+    IDS_DIAGNOSTICSERVICE_READDTCINFORMATION "ReadDTCInformation"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSERVICE_READDATABYIDENTIFIER "ReadDataByIdentifier"
+    IDS_DIAGNOSTICSERVICE_READMEMORYBYADDRESS "ReadMemoryByAddress"
+    IDS_DIAGNOSTICSERVICE_READSCALINGDATABYIDENTIFIER 
+                            "ReadScalingDataByIdentifier"
+    IDS_DIAGNOSTICSERVICE_SECURITYACCESS "SecurityAccess"
+    IDS_DIAGNOSTICSERVICE_COMMUNICATIONCONTROL "CommunicationControl"
+    IDS_DIAGNOSTICSERVICE_READDATABYPERIODICIDENTIFIER 
+                            "ReadDataByPeriodicIdentifier"
+    IDS_DIAGNOSTICSERVICE_DYNAMICALLYDEFINEDATAIDENTIFIER 
+                            "DynamicallyDefineDataIdentifier"
+    IDS_DIAGNOSTICSERVICE_WRITEDATABYIDENTIFIER "WriteDataByIdentifier"
+    IDS_DIAGNOSTICSERVICE_INPUTOUTPUTCONTROLBYIDENTIFIER 
+                            "InputOutputControlByIdentifier"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSERVICE_ROUTINECONTROL "RoutineControl"
+    IDS_DIAGNOSTICSERVICE_REQUESTDOWNLOAD "RequestDownload"
+    IDS_DIAGNOSTICSERVICE_REQUESTUPLOAD "RequestUpload"
+    IDS_DIAGNOSTICSERVICE_TRANSFERDATA "TransferData"
+    IDS_DIAGNOSTICSERVICE_REQUESTTRANSFEREXIT "RequestTransferExit"
+    IDS_DIAGNOSTICSERVICE_WRITEMEMORYBYADDRESS "WriteMemoryByAddress"
+    IDS_DIAGNOSTICSERVICE_TESTERPRESENT "TesterPresent"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSERVICE_ACCESSTIMINGPARAMETER "AccessTimingParameter"
+    IDS_DIAGNOSTICSERVICE_SECUREDDATATRANSMISSION "SecuredDataTransmission"
+    IDS_DIAGNOSTICSERVICE_CONTROLDTCSETTING "ControlDTCSetting"
+    IDS_DIAGNOSTICSERVICE_RESPONSEONEVENT "ResponseOnEvent"
+    IDS_DIAGNOSTICSERVICE_LINKCONTROL "LinkControl"
+END
+
+STRINGTABLE
+BEGIN
+    IDR_MAINFRAME           "UDSonCAN 诊断测试系统\n\nUDSonCAN\n\n\nUDSonCAN.Document\nUDSonCAN.Document"
+    IDS_NETWORKLAYERWATCH_UNKNOWNTARGETADDRESSTYPE 
+                            "请求发送了一个未知目标地址类型的消息，只接受物理寻址 / 功能寻址类型。发送失败。"
+    IDS_NETWORKLAYERWATCH_UNKNOWNMESSAGETYPE 
+                            "请求发送了一个未知类型的消息，只接受诊断 / 远程诊断类型。发送失败。"
+    IDS_VALIDCHARS_HEXSPACE "0123456789abcdefABCDEF "
+    IDS_VALIDCHARS_HEX      "0123456789abcdefABCDEF"
+    IDS_NETWORKLAYERWATCH_REQUEST "请求发送消息。"
+    IDS_NETWORKLAYERWATCH_REQUESTSINGLEFRAME "请求发送一个单帧："
+    IDS_NETWORKLAYERWATCH_REQUESTFIRSTFRAME "请求发送一个首帧："
+    IDS_NETWORKLAYERWATCH_REQUESTCONSECUTIVEFRAME "请求发送一个连续帧："
+    IDS_NETWORKLAYERWATCH_REQUESTFLOWCONTROL "请求发送一个流控制帧，发送窗口大小为 %d："
+    IDS_NETWORKLAYERWATCH_NOTRECEIVEINPROGRESS "当前没有处于接收状态。发送失败。"
+    IDS_NETWORKLAYERWATCH_NOTTRANSMITINPROGRESS "当前没有处于发送状态。发送失败。"
+    IDS_NETWORKLAYERWATCH_REQUESTNOREMAINDERFRAME "当前没有待发送的帧。发送失败。"
+    IDS_NETWORKLAYERWATCH_CONFIRM "收到发向此地址的验证。"
+    IDS_NETWORKLAYERWATCH_CONFIRMNOTINMESSAGELIST "接收到一个未期望的验证。验证失败。"
+    IDS_CONFIRM             "验证"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_REPORTACTIVATEDEVENTS 
+                            "doNotStoreEvent / reportActivatedEvents"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_STARTRESPONSEONEVENT 
+                            "doNotStoreEvent / startResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_CLEARRESPONSEONEVENT 
+                            "doNotStoreEvent / clearResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_DONOTSTOREEVENT_ONCOMPARISONOFVALUES 
+                            "doNotStoreEvent / onComparisonOfValues"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_STOPRESPONSEONEVENT 
+                            "storeEvent / stopResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_ONDTCSTATUSCHANGE 
+                            "storeEvent / onDTCStatusChange"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_ONTIMERINTERRUPT 
+                            "storeEvent / onTimerInterrupt"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_ONCHANGEOFDATAIDENTIFIER 
+                            "storeEvent / onChangeOfDataIdentifier"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_REPORTACTIVATEDEVENTS 
+                            "storeEvent / reportActivatedEvents"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_STARTRESPONSEONEVENT 
+                            "storeEvent / startResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_CLEARRESPONSEONEVENT 
+                            "storeEvent / clearResponseOnEvent"
+    IDS_DIAGNOSTICSUBFUNCTION_STOREEVENT_ONCOMPARISONOFVALUES 
+                            "storeEvent / onComparisonOfValues"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSECTION_TRANSFERREQUESTPARAMETERRECORD 
+                            "transferRequestParameterRecord"
+    IDS_DIAGNOSTICSECTION_TRANSMISSIONMODE "transmissionMode"
+    IDS_DIAGNOSTICSECTION_ZEROSUBFUNCTION "zeroFunction"
+    IDS_DIAGNOSTICSERVICE_COMMUNICATIONTYPE "communicationType"
+    IDS_DIAGNOSTICSERVICE_EVENTTYPERECORD "eventTypeRecord"
+    IDS_DIAGNOSTICSERVICE_EVENTWINDOWTIME "eventWindowTime"
+    IDS_DIAGNOSTICSERVICE_SECURITYACCESSDATARECORDORSECURITYKEY 
+                            "securityAccessDataRecord / securityKey"
+    IDS_DIAGNOSTICSERVICE_SECURITYDATAREQUESTRECORD 
+                            "securityDataRequestRecord"
+    IDS_DIAGNOSTICSERVICE_SERVICETORESPONDTORECORD "serviceToRespondToRecord"
+    IDS_DIAGNOSTICSERVICE_TIMINGPARAMETERREQUESTRECORD 
+                            "TimingParameterRequestRecord"
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_BAUDRATEIDENTIFIER "baudrateIdentifier"
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_DTCEXTENDEDDATARECORDNUMBER 
+                            "DTCExtendedDataRecordNumber"
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_DTCMASKRECORD "DTCMaskRecord"
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_DTCSEVERITYMASK "DTCSeverityMask"
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_DTCSNAPSHOTRECORDNUMBER 
+                            "DTCSnapshotRecordNumber"
+    IDS_DIAGNOSTICSUBFUNCTIONSECTION_DTCSTATUSMASK "DTCStatusMask"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_APP_TITLE       "UDSonCAN"
+    AFX_IDS_IDLEMESSAGE     "就绪"
+END
+
+STRINGTABLE
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_NEW             "创建新文档\n新建"
+    ID_FILE_OPEN            "打开现有文档\n打开"
+    ID_FILE_CLOSE           "关闭活动文档\n关闭"
+    ID_FILE_SAVE            "保存活动文档\n保存"
+    ID_FILE_SAVE_AS         "用新名称保存活动文档\n另存为"
+END
+
+STRINGTABLE
+BEGIN
+    ID_APP_ABOUT            "显示程序信息、版本号和版权信息\n关于"
+    ID_APP_EXIT             "退出应用程序；提示保存文档\n退出"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_MRU_FILE1       "打开此文档"
+    ID_FILE_MRU_FILE2       "打开此文档"
+    ID_FILE_MRU_FILE3       "打开此文档"
+    ID_FILE_MRU_FILE4       "打开此文档"
+    ID_FILE_MRU_FILE5       "打开此文档"
+    ID_FILE_MRU_FILE6       "打开此文档"
+    ID_FILE_MRU_FILE7       "打开此文档"
+    ID_FILE_MRU_FILE8       "打开此文档"
+    ID_FILE_MRU_FILE9       "打开此文档"
+    ID_FILE_MRU_FILE10      "打开此文档"
+    ID_FILE_MRU_FILE11      "打开此文档"
+    ID_FILE_MRU_FILE12      "打开此文档"
+    ID_FILE_MRU_FILE13      "打开此文档"
+    ID_FILE_MRU_FILE14      "打开此文档"
+    ID_FILE_MRU_FILE15      "打开此文档"
+    ID_FILE_MRU_FILE16      "打开此文档"
+END
+
+STRINGTABLE
+BEGIN
+    ID_NEXT_PANE            "切换到下一个窗格\n下一窗格"
+    ID_PREV_PANE            "切换回上一个窗格\n上一窗格"
+END
+
+STRINGTABLE
+BEGIN
+    ID_WINDOW_SPLIT         "将活动窗口拆分为多个窗格\n拆分"
+END
+
+STRINGTABLE
+BEGIN
+    ID_EDIT_CLEAR           "清除所选内容\n清除"
+    ID_EDIT_CLEAR_ALL       "清除全部内容\n全部清除"
+    ID_EDIT_COPY            "复制所选内容，将其放入剪贴板\n复制"
+    ID_EDIT_CUT             "剪切所选内容，将其放入剪贴板\n剪切"
+    ID_EDIT_FIND            "查找指定的文本\n查找"
+    ID_EDIT_PASTE           "插入剪贴板内容\n粘贴"
+    ID_EDIT_REPEAT          "重复上一操作\n重复"
+    ID_EDIT_REPLACE         "用其他文本替换特定的文本\n替换"
+    ID_EDIT_SELECT_ALL      "选定整个文档\n全选"
+    ID_EDIT_UNDO            "撤消上一操作\n撤消"
+    ID_EDIT_REDO            "重做上次撤消的操作\n重做"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_STATUS_BAR      "显示或隐藏状态栏\n切换状态栏"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCSIZE          "更改窗口大小"
+    AFX_IDS_SCMOVE          "更改窗口位置"
+    AFX_IDS_SCMINIMIZE      "将窗口缩小成图标"
+    AFX_IDS_SCMAXIMIZE      "将窗口放大到最大尺寸"
+    AFX_IDS_SCNEXTWINDOW    "切换到下一个文档窗口"
+    AFX_IDS_SCPREVWINDOW    "切换到上一个文档窗口"
+    AFX_IDS_SCCLOSE         "关闭活动窗口并提示保存文档"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCRESTORE       "将窗口恢复到正常大小"
+    AFX_IDS_SCTASKLIST      "激活任务列表"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSECTION_ADDRESSANDLENGTHFORMATIDENTIFIER 
+                            "addressAndLengthFormatIdentifier"
+    IDS_DIAGNOSTICSECTION_BLOCKSEQUENCECOUNTER "blockSequenceCounter"
+    IDS_DIAGNOSTICSECTION_CONTROLSTATUSRECORD "controlStatusRecord"
+    IDS_DIAGNOSTICSECTION_CONTROLTYPE "controlType"
+    IDS_DIAGNOSTICSECTION_DATA "data"
+    IDS_DIAGNOSTICSECTION_DATAFORMATIDENTIFIER "dataFormatIdentifier"
+    IDS_DIAGNOSTICSECTION_DATAIDENTIFIER "dataIdentifier"
+    IDS_DIAGNOSTICSECTION_DATARECORD "dataRecord"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_MODE_NORMAL         "正常"
+    IDS_MODE_LISTENONLY     "仅监听"
+    IDS_NETWORKLAYER_WORKMODE_HALFDUPLEX "半双工"
+    IDS_NETWORKLAYER_WORKMODE_FULLDUPLEX "全双工"
+    IDS_WATCH_TIME          "时间"
+    IDS_WATCH_TYPE          "类型"
+    IDS_WATCH_ID            "地址"
+    IDS_WATCH_DATA          "数据"
+    IDS_RECEIVE             "接收"
+    IDS_TRANSMIT            "发送"
+    IDS_STATUS_PANE1        "窗格 1"
+    IDS_STATUS_PANE2        "窗格 2"
+    IDS_TOOLBAR_STANDARD    "标准"
+    IDS_TOOLBAR_CUSTOMIZE   "自定义..."
+    IDS_NETWORKLAYERWATCH_REQUESTFUNCTIONALADDRESSISNOTSINGLEFRAME 
+                            "请求发送了一个功能寻址的消息，但此消息不是单帧。发送失败。"
+    IDS_NETWORKLAYERWATCH_REQUESTNOTEXPECTED "请求发送了一个未期望的连续帧或流控制帧。发送失败。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NETWORKLAYERWATCH_REQUESTFINISHED "发送成功完成。"
+    IDS_NETWORKLAYERWATCH_CONTINUETOREQUESTCF "继续请求发送连续帧。"
+    IDS_NETWORKLAYERWATCH_WAITFORFLOWCONTROL "等待流控制帧。"
+    IDS_NETWORKLAYERWATCH_UNKNOWNCANID "接收到一个未知类型的消息。接收失败。"
+    IDS_NETWORKLAYERWATCH_INDICATIONFUNCTIONALADDRESSISNOTSINGLEFRAME 
+                            "接收到一个功能寻址的消息，但此消息不是单帧。接收失败。"
+    IDS_NETWORKLAYERWATCH_INDICATIONUNEXPECTEDFCFRAME "接收到一个未期望的流控制帧。接收失败。"
+    IDS_NETWORKLAYERWATCH_INDICATIONFIRSTFRAME "接收到一个首帧："
+    IDS_NETWORKLAYERWATCH_INDICATIONCONSECUTIVEFRAME "接收到一个连续帧："
+    IDS_NETWORKLAYERWATCH_INDICATIONFLOWCONTROL "接收到一个流控制帧："
+    IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME 
+                            "当前正处于发送状态。接收失败。"
+    IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDPREVIOUSRECEIVE 
+                            "当前正处于接收状态，此状态将被覆盖。"
+    IDS_FILE_VIEW           "文件视图"
+    IDS_SERVICEVIEW         "服务"
+    IDS_NETWORKLAYERWATCH_WND "网络层监视"
+    IDS_NETWORKLAYERWATCH_INDICATIONUNEXPECTEDCFFRAME "接收到一个未期望的连续帧。接收失败。"
+    IDS_NETWORKLAYERWATCH_INDICATIONSINGLEFRAME "接收到一个单帧："
+END
+
+STRINGTABLE
+BEGIN
+    IDS_EXPLORER            "资源管理器"
+    IDS_EDIT_MENU           "编辑"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_BUILD_TAB           "生成"
+    IDS_DEBUG_TAB           "调试"
+    IDS_FIND_TAB            "查找"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCSNAPSHOTRECORDBYRECORDNUMBER 
+                            "reportDTCSnapshotRecordByRecordNumber"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTDTCWITHPERMANENTSTATUS 
+                            "reportDTCWithPermanentStatus"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTEMISSIONSRELATEDOBDDTCBYSTATUSMASK 
+                            "reportEmissionsRelatedOBDDTCByStatusMask"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTFIRSTCONFIRMEDDTC 
+                            "reportFirstConfirmedDTC"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTFIRSTTESTFAILEDDTC 
+                            "reportFirstTestFailedDTC"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTMIRRORMEMORYDTCBYSTATUSMASK 
+                            "reportMirrorMemoryDTCByStatusMask"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTMIRRORMEMORYDTCEXTENDEDDATARECORDBYDTCNUMBER 
+                            "reportMirrorMemoryDTCExtendedDataRecordByDTCNumber"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTMOSTRECENTCONFIRMEDDTC 
+                            "reportMostRecentConfirmedDTC"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTMOSTRECENTTESTFAILEDDTC 
+                            "reportMostRecentTestFailedDTC"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTNUMBEROFDTCBYSEVERITYMASKRECORD 
+                            "reportNumberOfDTCBySeverityMaskRecord"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTNUMBEROFDTCBYSTATUSMASK 
+                            "reportNumberOfDTCByStatusMask"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTNUMBEROFEMISSIONSRELATEDOBDDTCBYSTATUSMASK 
+                            "reportNumberOfEmissionsRelatedOBDDTCByStatusMask"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTNUMBEROFMIRRORMEMORYDTCBYSTATUSMASK 
+                            "reportNumberOfMirrorMemoryDTCByStatusMask"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTSEVERITYINFORMATIONOFDTC 
+                            "reportSeverityInformationOfDTC"
+    IDS_DIAGNOSTICSUBFUNCTION_REPORTSUPPORTEDDTC "reportSupportedDTC"
+    IDS_DIAGNOSTICSUBFUNCTION_REQUESTROUTINERESULTS "requestRoutineResults"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DEVICETYPE_PCI5121  "PCI5121"
+    IDS_DEVICETYPE_PCI9810  "PCI9810"
+    IDS_DEVICETYPE_USBCAN1  "USBCAN1"
+    IDS_DEVICETYPE_USBCAN2  "USBCAN2"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DEVICETYPE_PCI9820  "PCI9820"
+    IDS_DEVICETYPE_CAN232   "CAN232"
+    IDS_DEVICETYPE_PCI5110  "PCI5110"
+    IDS_DEVICETYPE_CANLITE  "CANLite (CANmini)"
+    IDS_DEVICETYPE_ISA9620  "ISA9620"
+    IDS_DEVICETYPE_ISA5420  "ISA5420"
+    IDS_DEVICETYPE_PC104CAN "PC104-CAN"
+    IDS_DEVICETYPE_CANETUDP "CANET-UDP"
+    IDS_DEVICETYPE_DNP9810  "DNP9810"
+    IDS_DEVICETYPE_PCI9840  "PCI9840"
+    IDS_DEVICETYPE_PC104CAN2 "PCI104-CAN2"
+    IDS_DEVICETYPE_PCI9820I "PCI9820I"
+    IDS_DEVICETYPE_CANETTCP "CANET-TCP"
+    IDS_DEVICETYPE_PEC9920  "PEC-9920"
+    IDS_DEVICETYPE_PCIE9220 "PCIE-9220"
+    IDS_DEVICETYPE_PCI5010U "PCI-5010-U"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DEVICETYPE_USBCANEU "USBCAN-E-U"
+    IDS_DEVICETYPE_USBCAN2EU "USBCAN-2E-U"
+    IDS_DEVICETYPE_PCI5020U "PCI-5020-U"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_BAUDRATETYPE_5      "5Kbps"
+    IDS_BAUDRATETYPE_10     "10Kbps"
+    IDS_BAUDRATETYPE_20     "20Kbps"
+    IDS_BAUDRATETYPE_40     "40Kbps"
+    IDS_BAUDRATETYPE_50     "50Kbps"
+    IDS_BAUDRATETYPE_80     "80Kbps"
+    IDS_BAUDRATETYPE_100    "100Kbps"
+    IDS_BAUDRATETYPE_125    "125Kbps"
+    IDS_BAUDRATETYPE_200    "200Kbps"
+    IDS_BAUDRATETYPE_250    "250Kbps"
+    IDS_BAUDRATETYPE_400    "400Kbps"
+    IDS_BAUDRATETYPE_500    "500Kbps"
+    IDS_BAUDRATETYPE_666    "666Kbps"
+    IDS_BAUDRATETYPE_800    "800Kbps"
+    IDS_BAUDRATETYPE_1000   "1000Kbps"
+    IDS_BAUDRATETYPE_CUSTOM "自定义"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDRECEIVEDFRAME 
+                            "当前正处于接收状态。接收失败。"
+    IDS_NETWORKLAYERWATCH_RECEIVENOREMAINDERFRAME "接收窗口已满。接收失败。"
+    IDS_NETWORKLAYERWATCH_IDLEDISCARDRECEIVEDFRAME "当前正空闲。接收失败。"
+    IDS_NETWORKLAYERWATCH_REMAINDERFRAMES "接收窗口未满。接收失败。"
+    IDS_NETWORKLAYERWATCH_UNKNOWNPDU "接收到一个未知 PDU。接收失败。"
+    IDS_NETWORKLAYERWATCH_NOAPPLICATIONLAYERDATA "此帧未包含应用层数据。接收失败。"
+    IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTHTOOLONG 
+                            "此帧标示的应用层数据长度过长。接收失败。"
+    IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTH "要接收的应用层数据长度为：%d。"
+    IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTHTOOSHORT 
+                            "此帧标示的应用层数据长度过短。接收失败。"
+    IDS_NETWORKLAYERWATCH_INVALIDSN "无效的序列号。接收失败。"
+    IDS_NETWORKLAYERWATCH_RECEIVEFINISHED "接收成功完成。"
+    IDS_NETWORKLAYERWATCH_FLOWCONTROL_CONTINUETOSEND "此流控制帧要求继续发送，发送窗口大小：%d。"
+    IDS_NETWORKLAYERWATCH_FLOWCONTROL_WAIT "此流控制帧要求等待。"
+    IDS_NETWORKLAYERWATCH_FLOWCONTROL_OVERFLOW "此流控制帧指示接收方已溢出。发送失败。"
+    IDS_NETWORKLAYERWATCH_FLOWCONTROL_INVALID "无效的流控制帧。发送失败。"
+    IDS_NETWORKLAYERWATCH_TIMEOUT_AS "As 定时器已超时。这个地址的发送 / 接收已中止。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NETWORKLAYERWATCH_TIMEOUT_AR "Ar 定时器已超时。这个地址的发送 / 接收已中止。"
+    IDS_NETWORKLAYERWATCH_TIMEOUT_BS "Bs 定时器已超时。这个地址的发送 / 接收已中止。"
+    IDS_NETWORKLAYERWATCH_TIMEOUT_BR "Br 定时器已超时。"
+    IDS_NETWORKLAYERWATCH_TIMEOUT_CS "Cs 定时器已超时。"
+    IDS_NETWORKLAYERWATCH_TIMEOUT_CR "Cr 定时器已超时。这个地址的发送 / 接收已中止。"
+    IDS_APPLICATIONLAYERWATCH_WND "应用层监视"
+    IDS_NOTALLSECTIONFULFILLED "一些值长度未能符合协议要求，执行失败。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDIAGNOSTICSESSIONCONTROL "请求诊断会话控制。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDEFUALTSESSION "会话类型：缺省会话。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTPROGRAMMINGSESSION "会话类型：编程会话。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTEXTENDDIAGNOSTICSESSION "会话类型：扩展诊断会话。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTECURESET "请求重启 ECU。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTHARDRESET "重启方式：硬重启。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTKEYOFFONRESET "重启方式：模拟钥匙关闭、打开。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSOFTRESET "重启方式：软重启。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTENABLERAPIDPOWERSHUTDOWN "使能快速电源关闭。"
+END
+
+STRINGTABLE
+BEGIN
+    ID_DIAGNOSTIC_BEGINDIAGNOSTIC "启动诊断服务。\n启动诊断"
+    ID_DIAGNOSTIC_EXECUTE   "执行选中的服务。\n执行"
+    ID_DIAGNOSTIC_PAUSEWATCH "暂停监视窗口的输出。\n暂停监视"
+    ID_DIAGNOSTIC_CLEARWATCH "清除监视窗口的输出。\n清空监视"
+    ID_DIAGNOSTIC_STOPDIAGNOSTIC "停止诊断服务。\n停止诊断"
+END
+
+STRINGTABLE
+BEGIN
+    ID_TOOLS_TEST           "在虚拟环境测试。\n功能测试"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_APPLICATIONLAYERWATCH_REQUESTDISABLERAPIDPOWERSHUTDOWN "禁止快速电源关闭。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSECURITYACCESS "请求安全访问。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTCOMMUNICATIONCONTROL "请求通信控制。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTENABLERXANDTX "通信类型：使能接收与发送。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTENABLERXANDDISABLETX "通信类型：使能接收，禁止发送。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDISABLERXANDENABLETX "通信类型：禁止接收，使能发送。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDISABLERXANDTX "通信类型：禁止接收与发送。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTTESTERPRESENT "请求发送测试器在线（TP）。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTACCESSTIMINGPARAMETER "请求存取定时参数："
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADEXTENDEDTIMINGPARAMETERSET 
+                            "请求读取扩展定时参数。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSETTIMINGPARAMETERSTODEFAULTVALUES 
+                            "复位定时参数为缺省值。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADCURRENTLYACTIVETIMINGPARAMETERS 
+                            "读取当前活动的定时参数。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSETTIMINGPARAMETERSTOGIVENVALUES 
+                            "设置定时参数。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSECUREDDATATRANSMISSION "请求发送安全数据。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTCONTROLDTCSETTING "请求控制诊断设置码设置："
+    IDS_APPLICATIONLAYERWATCH_REQUESTON "请求打开。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_APPLICATIONLAYERWATCH_REQUESTOFF "请求关闭"
+    IDS_APPLICATIONLAYERWATCH_REQUESTRESPONSEONEVENT "请求基于事件的响应："
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_STOPRESPONSEONEVENT 
+                            "不储存事件；停止基于事件的相应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_ONDTCSTATUSCHANGE 
+                            "不储存事件；在诊断故障码改变时响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_ONTIMERINTERRUPT 
+                            "不储存事件；在定时器中断时响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_ONCHANGEOFDATAIDENTIFIER 
+                            "不储存事件；在数据标识符改变时响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_REPORTACTIVATEDEVENTS 
+                            "不储存事件；报告活动事件。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_STARTRESPONSEONEVENT 
+                            "不储存事件；开始执行基于事件的响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_CLEARRESPONSEONEVENT 
+                            "不储存事件；清除基于事件的响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDONOTSTOREEVENT_ONCOMPARISONOFVALUES 
+                            "不储存事件；根据比较值响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_STOPRESPONSEONEVENT 
+                            "储存事件；停止基于事件的相应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_ONDTCSTATUSCHANGE 
+                            "储存事件；在诊断故障码改变时响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_ONTIMERINTERRUPT 
+                            "储存事件；在定时器中断时响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_ONCHANGEOFDATAIDENTIFIER 
+                            "储存事件；在数据标识符改变时响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_REPORTACTIVATEDEVENTS 
+                            "储存事件；报告活动事件。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_STARTRESPONSEONEVENT 
+                            "储存事件；开始执行基于事件的响应。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_CLEARRESPONSEONEVENT 
+                            "储存事件；清除基于事件的响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOREEVENT_ONCOMPARISONOFVALUES 
+                            "储存事件；根据比较值响应。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTLINKCONTROL "请求链路控制："
+    IDS_APPLICATIONLAYERWATCH_REQUESTVERIFYBAUDRATETRANSITIONWITHFIXEDBAUDRATE 
+                            "验证既定波特率的波特率转换。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTVERIFYBAUDRATETRANSITIONWITHSPECIFICBAUDRATE 
+                            "验证指定波特率的波特率转换。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTTRANSITIONBAUDRATE "转换波特率。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADDATABYIDENTIFIER "请求通过标识符读取数据。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADMEMORYBYADDRESS "请求通过地址读取内存。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADSCALINGDATABYIDENTIFIER 
+                            "请求通过标识符读取 Scaling Data。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADDATABYPERIODICIDENTIFIER 
+                            "请求通过周期标识符读取数据。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDYNAMICALLYDEFINEDATAIDENTIFIER 
+                            "请求动态定义数据标识符："
+    IDS_APPLICATIONLAYERWATCH_REQUESTDEFINEBYIDENTIFIER "通过标识符定义。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTDEFINEBYMEMORYADDRESS "通过内存地址定义。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTCLEARDYNAMICALLYDEFINEDDATAIDENTIFIER 
+                            "清除动态定义的数据标识符。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTWRITEDATABYIDENTIFIER "请求通过数据标识符写入数据。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTWRITEMEMORYBYADDRESS "请求通过地址写入内存。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_APPLICATIONLAYERWATCH_REQUESTCLEARDIAGNOSTICINFORMATION "请求清除诊断信息。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREADDTCINFORMATION "请求读取诊断故障码信息："
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTNUMBEROFDTCBYSTATUSMASK 
+                            "报告符合状态掩码的诊断故障码数量。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCBYSTATUSMASK "报告符合状态掩码的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCSNAPSHOTIDENTIFICATION 
+                            "报告诊断故障码快照标识符。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCSNAPSHOTRECORDBYDTCNUMBER 
+                            "报告与诊断故障码编号相关的诊断故障码快照。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCSNAPSHOTRECORDBYRECORDNUMBER 
+                            "报告与记录编号相关的诊断故障码快照。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCEXTENDEDDATARECORDBYDTCNUMBER 
+                            "报告与诊断故障码编号相关的扩展诊断故障码数据记录。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTNUMBEROFDTCBYSEVERITYMASKRECORD 
+                            "报告符合严重度掩码的诊断故障码数量。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCBYSEVERITYMASKRECORD 
+                            "报告符合严重度掩码的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTSEVERITYINFORMATIONOFDTC 
+                            "报告诊断故障码的严重度信息。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTSUPPORTEDDTC "报告支持的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTFIRSTTESTFAILEDDTC 
+                            "报告第一个测试失败的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTFIRSTCONFIRMEDDTC "报告第一个验证的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTMOSTRECENTTESTFAILEDDTC 
+                            "报告最近测试失败的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTMOSTRECENTCONFIRMEDDTC 
+                            "报告最近验证的诊断故障码。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTMIRRORMEMORYDTCBYSTATUSMASK 
+                            "报告符合状态掩码的镜像内存诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTMIRRORMEMORYDTCEXTENDEDDATARECORDBYDTCNUMBER 
+                            "报告符合诊断故障码编号的镜像内存诊断故障码扩展数据记录。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTNUMBEROFMIRRORMEMORYDTCBYSTATUSMASK 
+                            "报告符合状态掩码的镜像内存诊断故障码数量。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTNUMBEROFEMISSIONSRELATEDOBDDTCBYSTATUSMASK 
+                            "报告符合状态掩码的排放相关 OBD 诊断故障码数量。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTEMISSIONSRELATEDOBDDTCBYSTATUSMASK 
+                            "报告符合状态掩码的排放相关 OBD 诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCFAULTDETECTIONCOUNTER 
+                            "报告诊断故障码失败检测计数器。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREPORTDTCWITHPERMANENTSTATUS 
+                            "报告具有永久状态的诊断故障码。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTINPUTOUTPUTCONTROLBYIDENTIFIER 
+                            "请求通过标识符进行输入输出控制。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTROUTINECONTROL "请求程序控制："
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTARTROUTINE "开始程序。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTSTOPROUTINE "停止程序。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREQUESTROUTINERESULTS "返回程序结果。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREQUESTDOWNLOAD "请求下载。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREQUESTUPLOAD "请求上传。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTTRANSFERDATA "请求发送数据。"
+    IDS_APPLICATIONLAYERWATCH_REQUESTREQUESTTRANSFEREXIT "请求中止发送。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_BEGINDIAGNOSTICFAILED "设备未就绪，启动诊断失败。"
+END
+
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE 4, 2
+#include "res\UDSonCAN.rc2"  // 非 Microsoft Visual C++ 编辑的资源
+#include "l.CHS\afxres.rc"      // 标准组件
+#if !defined(_AFXDLL)
+#include "l.CHS\afxprint.rc"        // 打印/打印预览资源
+#include "l.CHS\afxribbon.rc"        // MFC 功能区和控件条资源
+#endif
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
