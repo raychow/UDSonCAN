@@ -3,6 +3,8 @@
 #include <vector>
 #include <list>
 
+#include <boost/thread.hpp>
+
 #include "ControlCAN\ControlCAN.h"
 
 #define TESTCODE		// 生成在无硬件支援时测试使用的虚拟代码。
@@ -74,7 +76,7 @@ public:
 	BOOL ResetCAN();
 	BOOL IsCANStarted() const;
 
-	BOOL Transmit(UINT nID, const BYTEVector &vbyData, SendType sendType = SendType::Normal, BOOL bRemoteFrame = FALSE, BOOL bExternFrame = FALSE, BOOL bConfirmReserveAddress = FALSE);
+	BOOL Transmit(INT32 nID, const BYTEVector &vbyData, SendType sendType = SendType::Normal, BOOL bRemoteFrame = FALSE, BOOL bExternFrame = FALSE, BOOL bConfirmReserveAddress = FALSE);
 	
 	void SetDataLinkLayer(CDataLinkLayer &dataLinkLayer);
 	void SetDiagnosticControl(CDiagnosticControl &diagnosticControl);
@@ -87,7 +89,7 @@ public:
 protected:
 	struct ConfirmBuffer
 	{
-		UINT nID;						// 待 Confirm 的 ID。
+		INT32 nID;						// 待 Confirm 的 ID。
 		BYTE byDataFirstFrame;			// 数据第一帧，用于验证扩展地址。
 		BOOL bConfirmReverseAddress;	// Confirm 时反转源地址与目标地址，针对 FC。
 	};
@@ -111,6 +113,7 @@ protected:
 	CWinThread *m_pReceiveThread;
 	BOOL _StartThread();
 	void _StopThread();
+
 	static UINT _ReceiveThread(LPVOID lpParam);
 
 	CCriticalSection m_csectionTransmit;

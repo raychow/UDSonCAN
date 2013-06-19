@@ -133,13 +133,6 @@ void CPhysicalLayer::SetMode(UCHAR chMode)
 
 BOOL CPhysicalLayer::OpenDevice()
 {
-#ifdef TESTCODE
-	_VERIFYDEVICEISNOTOPENED();
-
-	m_bDeviceOpened = TRUE;
-	return TRUE;
-#endif
-
 	_VERIFYDEVICEISNOTOPENED();
 
 	if (VCI_OpenDevice(m_dwDeviceType, m_dwDeviceIndex, 0) != STATUS_OK)
@@ -153,17 +146,6 @@ BOOL CPhysicalLayer::OpenDevice()
 
 BOOL CPhysicalLayer::CloseDevice()
 {
-#ifdef TESTCODE
-	_VERIFYDEVICEISOPENED();
-	if (m_bCANStarted && !(ResetCAN()))
-	{
-		return FALSE;
-	}
-	m_bDeviceOpened = FALSE;
-
-	return TRUE;
-#endif
-
 	_VERIFYDEVICEISOPENED();
 	
 	if (m_bCANStarted && !ResetCAN() || !VCI_CloseDevice(m_dwDeviceType, m_dwDeviceIndex) == STATUS_OK)	// TODO: 是否相反？
@@ -182,10 +164,6 @@ BOOL CPhysicalLayer::IsDeviceOpened() const
 
 UINT CPhysicalLayer::GetCANCount() const
 {
-#ifdef TESTCODE
-	return 2;
-#endif
-
 	VCI_BOARD_INFO boardInfo;
 	if (VCI_ReadBoardInfo(m_dwDeviceType, m_dwDeviceIndex, &boardInfo) != STATUS_OK)
 	{
@@ -196,17 +174,6 @@ UINT CPhysicalLayer::GetCANCount() const
 
 BOOL CPhysicalLayer::StartCAN()
 {
-#ifdef TESTCODE
-	_VERIFYDEVICEISOPENED();
-	_VERIFYCANISNOTSTARTED();
-
-	m_bCANStarted = TRUE;
-	_StartThread();
-
-	return TRUE;
-
-#endif
-
 	_VERIFYDEVICEISOPENED();
 	_VERIFYCANISNOTSTARTED();
 
@@ -230,18 +197,6 @@ BOOL CPhysicalLayer::StartCAN()
 
 BOOL CPhysicalLayer::ResetCAN()
 {
-#ifdef TESTCODE
-	_VERIFYDEVICEISOPENED();
-	_VERIFYCANISSTARTED();
-
-	_StopThread();
-
-	m_bCANStarted = FALSE;
-
-	return TRUE;
-
-#endif
-
 	_VERIFYDEVICEISOPENED();
 	_VERIFYCANISSTARTED();
 
@@ -261,9 +216,8 @@ BOOL CPhysicalLayer::IsCANStarted() const
 	return m_bCANStarted;
 }
 
-BOOL CPhysicalLayer::Transmit(UINT nID, const BYTEVector &vbyData, SendType sendType, BOOL bRemoteFrame, BOOL bExternFrame, BOOL bConfirmReserveAddress)
+BOOL CPhysicalLayer::Transmit(INT32 nID, const BYTEVector &vbyData, SendType sendType, BOOL bRemoteFrame, BOOL bExternFrame, BOOL bConfirmReserveAddress)
 {
-#ifdef TESTCODE
 	_VERIFYDEVICEISOPENED();
 	_VERIFYCANISSTARTED();
 
@@ -282,18 +236,11 @@ BOOL CPhysicalLayer::Transmit(UINT nID, const BYTEVector &vbyData, SendType send
 	canObj[0].RemoteFlag = bRemoteFrame;
 	canObj[0].SendType = sendType;
 
-	TRACE(_T("CPhysicalLayer::Transmit:\n\tData: "));
-	for (int i = 0; i != MAXDATALENGTH; ++i)
-	{
-		TRACE(_T("%X "), canObj[0].Data[i]);
-	}
-	TRACE(_T("\n\tDataLen: %d, ExternFlag: %d, ID: 0x%X, RemoteFlag: %d, SendType: %d\n"), canObj[0].DataLen, canObj[0].ExternFlag, canObj[0].ID, canObj[0].RemoteFlag, canObj[0].SendType);
-
 	CSingleLock lockTransmit(&m_csectionTransmit);
 	lockTransmit.Lock();
-	if (TRUE)
+	if (VCI_Transmit(m_dwDeviceType, m_dwDeviceIndex, m_dwCANIndex, canObj, 1) == STATUS_OK)
 	{
-		// TODO: 输出物理层发送成功讯息。
+		// 输出物理层发送成功讯息
 		ConfirmBuffer *pConfirmBuffer = new ConfirmBuffer();
 		pConfirmBuffer->nID = nID;
 		pConfirmBuffer->byDataFirstFrame = vbyData.at(0);
@@ -306,50 +253,9 @@ BOOL CPhysicalLayer::Transmit(UINT nID, const BYTEVector &vbyData, SendType send
 	{
 		// TODO: 输出物理层发送失败讯息
 	}
-	lockTransmit.Unlock();
-
-	return FALSE;
-#elif
-
-	_VERIFYDEVICEISOPENED();
-	_VERIFYCANISSTARTED();
-
-	VCI_CAN_OBJ canObj[1];
-	ZeroMemory(canObj[0], sizeof(canObj[0]));
-
-	// TODO: 输出物理层待发送讯息
-
-	for (int i = 0; i != MAXDATALENGTH; ++i)
-	{
-		canObj[0].Data[i] = vbyData.at(i);
-	}
-	canObj[0].DataLen = vbyData.size();
-	canObj[0].ExternFlag = bExternFrame;
-	canObj[0].ID = nID;
-	canObj[0].RemoteFlag = bRemoteFrame;
-	canObj[0].SendType = sendType;
-
-	CSingleLock lockTransmit(&m_csectionTransmit);
-	lockTransmit.Lock();
-	if (VCI_Transmit(m_deviceType, m_dwDeviceIndex, m_dwCANIndex, canObj, 1) == STATUS_OK)
-	{
-		// 输出物理层发送成功讯息
-		m_nID = nID;
-		m_byDataFirstFrame = vbyData.at(0);
-		m_bConfirmReverse = bConfirmReserve;
-		m_eventConfirm.SetEvent();
-		return TRUE;	// Confirm
-	}
-	else
-	{
-		m_eventTransmitReady.SetEvent();
-		// TODO: 输出物理层发送失败讯息
-	}
 	lockTransmit.Lock();
 
 	return FALSE;
-
-#endif
 }
 
 BOOL CPhysicalLayer::_StartThread()
@@ -415,38 +321,40 @@ void CPhysicalLayer::_StopThread()
 
 UINT CPhysicalLayer::_ReceiveThread(LPVOID lpParam)
 {
-
-#ifdef TESTCODE
-
 	CPhysicalLayer *pThis = static_cast<CPhysicalLayer *>(lpParam);
 	ASSERT(pThis->m_pDataLinkLayer);
 
 	DWORD dwWaitResult;
-	// 清空 CAN 接收缓冲区；
 	ULONG lReceivedLength;
+	// 清空 CAN 接收缓冲区；
+	VCI_ClearBuffer(pThis->m_dwDeviceIndex, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex);
 	VCI_CAN_OBJ canObj[CANRECEIVECOUNT];
-	CSingleLock lockReceiveData(&pThis->m_csectionReceiveData);
+	VCI_ERR_INFO errInfo;
 	do
 	{
+#ifdef TESTCODE
+		CSingleLock lockReceiveData(&pThis->m_csectionReceiveData);
 		lockReceiveData.Lock();
-
-		lReceivedLength = pThis->m_lReceivedLength;
-		pThis->m_lReceivedLength = 0;
-		canObj[0] = pThis->m_canObj;
-
-		lockReceiveData.Unlock();
+		if (lReceivedLength = pThis->m_lReceivedLength)
+		{
+			pThis->m_lReceivedLength = 0;
+			canObj[0] = pThis->m_canObj;
+		}
+#elif
+		lReceivedLength = VCI_Receive(pThis->m_dwDeviceIndex, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex, canObj, CANRECEIVECOUNT, 0);
+#endif
 		if (lReceivedLength == CANRECEIVEFAILEDFALG)
 		{
 			// 如果没有读到数据，必须调用此函数来读取出当前的错误码。
+			VCI_ReadErrInfo(pThis->m_dwDeviceType, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex, &errInfo);
 			// TODO: 输出 errInfo 包含的错误讯息。
 		}
 		else if (lReceivedLength)
 		{
-			for (ULONG i = 0; i != 1; ++i)
+			for (ULONG i = 0; i != lReceivedLength; ++i)
 			{
 				if (!canObj[i].RemoteFlag)
 				{
-					// TODO: 输出物理层跟踪信息
 					TRACE(_T("\nPhysicalLayer::_ReceiveThread:\nData (Hex): "));
 					for (int j = 0; j != MAXDATALENGTH; ++j)
 					{
@@ -466,48 +374,6 @@ UINT CPhysicalLayer::_ReceiveThread(LPVOID lpParam)
 	pThis->m_eventReceiveThreadExited.SetEvent();
 	pThis->m_pReceiveThread = NULL;
 	return 0;
-
-#elif
-
-	CPhysicalLayer *pThis = static_cast<CPhysicalLayer *>(lpParam);
-	ASSERT(pThis->m_pDataLinkLayer);
-
-	DWORD dwWaitResult;
-	// 清空 CAN 接收缓冲区；
-	VCI_ClearBuffer(pThis->m_dwDeviceIndex, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex);
-	ULONG lReceivedLength;
-	VCI_CAN_OBJ canObj[CANRECEIVECOUNT];
-	VCI_ERR_INFO errInfo;
-	do
-	{
-		lReceivedLength = VCI_Receive(pThis->m_dwDeviceIndex, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex, canObj, CANRECEIVECOUNT, 0);
-		if (lReceivedLength == CANRECEIVEFAILEDFALG)
-		{
-			// 如果没有读到数据，必须调用此函数来读取出当前的错误码。
-			VCI_ReadErrInfo(pThis->m_deviceType, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex, &errInfo);
-			// TODO: 输出 errInfo 包含的错误讯息。
-		}
-		else if (lReceivedLength)
-		{
-			for (ULONG i = 0; i != lReceivedLength; ++i)
-			{
-				if (!canObj[i].RemoteFlag)
-				{
-					// TODO: 输出物理层跟踪信息
-
-					// 通知链路层
-					BYTEVector vbyData(canObj[i].Data, canObj[i].Data + canObj[i].DataLen);
-					pThis->m_pDataLinkLayer->Indication(canObj[i].ID, vbyData);
-				}
-			}
-		}
-		dwWaitResult = WaitForSingleObject(pThis->m_eventExitReceive.m_hObject, CANRECEIVECYCLE);
-	} while (dwWaitResult != WAIT_OBJECT_0);
-	pThis->m_eventReceiveThreadExited.SetEvent();
-	pThis->m_pReceiveThread = NULL;
-	return 0;
-
-#endif
 }
 
 UINT CPhysicalLayer::_ConfirmThread(LPVOID lpParam)
@@ -557,3 +423,45 @@ void CPhysicalLayer::SetDiagnosticControl(CDiagnosticControl &diagnosticControl)
 	m_pDiagnosticControl = &diagnosticControl;
 }
 
+#ifdef TESTCODE
+DWORD __stdcall VCI_OpenDevice(DWORD DeviceType, DWORD DeviceInd, DWORD Reserved)
+{
+	return STATUS_OK;
+}
+
+DWORD __stdcall VCI_CloseDevice(DWORD DeviceType, DWORD DeviceInd)
+{
+	return STATUS_OK;
+}
+
+DWORD __stdcall VCI_ReadBoardInfo(DWORD DeviceType, DWORD DeviceInd, PVCI_BOARD_INFO pInfo)
+{
+	pInfo->can_Num = 2;
+	return STATUS_OK;
+}
+
+DWORD __stdcall VCI_InitCAN(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_INIT_CONFIG pInitConfig)
+{
+	return STATUS_OK;
+}
+
+DWORD __stdcall VCI_StartCAN(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd)
+{
+	return STATUS_OK;
+}
+
+DWORD __stdcall VCI_ResetCAN(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd)
+{
+	return STATUS_OK;
+}
+
+ULONG __stdcall VCI_Transmit(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_CAN_OBJ pSend, ULONG Len)
+{
+	return STATUS_OK;
+}
+
+DWORD __stdcall VCI_ReadErrInfo(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_ERR_INFO pErrInfo)
+{
+	return STATUS_OK;
+}
+#endif

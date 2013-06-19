@@ -14,7 +14,6 @@ IMPLEMENT_DYNAMIC(CNetworkLayerConfigDialog, CDialogEx)
 
 CNetworkLayerConfigDialog::CNetworkLayerConfigDialog(CNetworkLayer &networkLayer, CWnd* pParent /*=NULL*/)
 	: CDialogEx(CNetworkLayerConfigDialog::IDD, pParent)
-	, m_nWorkMode(0)
 	, m_bySeparationTimeMin(0)
 	, m_nBlockSize(0)
 	, m_nWaitFrameTransimissionMax(0)
@@ -36,7 +35,6 @@ CNetworkLayerConfigDialog::~CNetworkLayerConfigDialog()
 void CNetworkLayerConfigDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_CBIndex(pDX, IDC_COMBO_NETWORKLAYERCONFIG_WORKMODE, m_nWorkMode);
 	DDX_Text(pDX, IDC_EDIT_NETWORKLAYERCONFIG_SEPARATIONTIMEMIN, m_bySeparationTimeMin);
 	DDX_Text(pDX, IDC_EDIT_NETWORKLAYERCONFIG_BLOCKSIZE, m_nBlockSize);
 	DDX_Text(pDX, IDC_EDIT_NETWORKLAYERCONFIG_FCWAITTRANSMISSIONMAX, m_nWaitFrameTransimissionMax);
@@ -54,7 +52,6 @@ END_MESSAGE_MAP()
 
 void CNetworkLayerConfigDialog::_LoadConfig()
 {
-	m_nWorkMode = m_networkLayer.IsFullDuplex();
 	m_bySeparationTimeMin = m_networkLayer.GetSeparationTimeMin();
 	m_nBlockSize = m_networkLayer.GetBlockSize();
 	m_nWaitFrameTransimissionMax = m_networkLayer.GetWaitFrameTransimissionMax();
@@ -92,7 +89,6 @@ void CNetworkLayerConfigDialog::OnOK()
 {
 	UpdateData(TRUE);
 
-	m_networkLayer.SetFullDuplex(1 == m_nWorkMode);
 	m_networkLayer.SetSeparationTimeMin(m_bySeparationTimeMin);
 	m_networkLayer.SetBlockSize(m_nBlockSize);
 	m_networkLayer.SetWaitFrameTransimissionMax(m_nWaitFrameTransimissionMax);

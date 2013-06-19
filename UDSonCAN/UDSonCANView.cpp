@@ -388,6 +388,7 @@ void CUDSonCANView::OnDiagnosticBeginDiagnostic()
 	{
 		if (physicalLayer.StartCAN())
 		{
+			GetDocument()->GetDiagnosticControl().GetDataLinkLayer().SetNodeAddress(GetDocument()->GetDiagnosticControl().GetApplicationLayer().GetTesterPhysicalAddress());	// TODO: 将此处设定移动到 DiagnosticControl 中统一管理。
 			GetDocument()->GetDiagnosticControl().ResetTiming();
 			return;
 		}

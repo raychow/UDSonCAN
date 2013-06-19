@@ -19,15 +19,12 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV Ö§³Ö
 
-	DECLARE_MESSAGE_MAP()
 public:
 	virtual BOOL OnInitDialog();
 protected:
 	CString m_csTesterPhysicalAddress;
-	CString m_csECUAddress;
-	BOOL m_bECUFunctionalAddress;
-	BOOL m_bRemoteDiagnostic;
-	CString m_csRemoteDiagnosticAddress;
+	CString m_csECUPhysicalAddress;
+	CString m_csECUFunctionalAddress;
 
 	UINT m_nP2CANClient;
 	UINT m_nP2SCANClient;
@@ -38,9 +35,6 @@ protected:
 	CApplicationLayer &m_applicationLayer;
 
 	void _LoadConfig();
-
-	void _UpdateUIRemoteDiagnostic();
 public:
-	afx_msg void OnClickedCheckDiagnosticconfigRemotediagnostic();
 	virtual void OnOK();
 };

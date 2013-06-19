@@ -37,10 +37,10 @@ public:
 
 	void ResetTiming();
 
-	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
-	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, const BYTEVector &vbyData, Color color = Color::Black) const;
-	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, UINT nDescriptionID, Color color = Color::Black) const;
-	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, UINT nDescriptionID, int nData, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black) const;
 protected:
 	CPhysicalLayer		*m_pPhysicalLayer;
 	CDataLinkLayer		*m_pDataLinkLayer;
@@ -57,6 +57,6 @@ protected:
 
 	CStringA m_csaConfigFilename;
 
-	void _AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
+	void _AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
 };
 

@@ -113,9 +113,8 @@ void CDiagnosticControl::LoadConfig()
 	m_pPhysicalLayer->SetMode(pptNode->get<UCHAR>("Mode", 0));
 
 	pptNode = &pptChild->get_child("CNetworkLayer", ptEmpty);
-	m_pNetworkLayer->SetFullDuplex(pptNode->get<BOOL>("FullDuplex", FALSE));
 	m_pNetworkLayer->SetSeparationTimeMin(pptNode->get<BYTE>("SeparationTimeMin", 0));
-	m_pNetworkLayer->SetBlockSize(pptNode->get<BYTE>("BlockSize", 0));
+	m_pNetworkLayer->SetBlockSize(pptNode->get<BYTE>("BlockSize", 0xFF));
 	m_pNetworkLayer->SetWaitFrameTransimissionMax(pptNode->get<UINT>("WaitFrameTransimissionMax", 0));
 	m_pNetworkLayer->SetAs(pptNode->get<UINT>("As", 1000));
 	m_pNetworkLayer->SetAr(pptNode->get<UINT>("Ar", 1000));
@@ -125,11 +124,9 @@ void CDiagnosticControl::LoadConfig()
 	m_pNetworkLayer->SetCr(pptNode->get<UINT>("Cr", 1000));
 
 	pptNode = &pptChild->get_child("CApplicationLayer", ptEmpty);
-	m_pApplicationLayer->SetTesterPhysicalAddress(pptNode->get<BYTE>("TesterPhysicalAddress", 0));
-	m_pApplicationLayer->SetECUAddress(pptNode->get<BYTE>("ECUAddress", 0));
-	m_pApplicationLayer->SetECUFunctionalAddress(pptNode->get<BOOL>("ECUFunctionalAddress", FALSE));
-	m_pApplicationLayer->SetRemoteDiagnostic(pptNode->get<BOOL>("RemoteDiagnostic", FALSE));
-	m_pApplicationLayer->SetRemoteDiagnosticAddress(pptNode->get<BYTE>("RemoteDiagnosticAddress", 0));
+	m_pApplicationLayer->SetTesterPhysicalAddress(pptNode->get<INT32>("TesterPhysicalAddress", 0x0780));
+	m_pApplicationLayer->SetECUPhysicalAddress(pptNode->get<INT32>("ECUPhysicalAddress", 0x0760));
+	m_pApplicationLayer->SetECUFunctionalAddress(pptNode->get<INT32>("ECUFunctionalAddress", 0));
 	m_pApplicationLayer->SetP2CANClient(pptNode->get<UINT>("P2CANClient", 1100));
 	m_pApplicationLayer->SetP2SCANClient(pptNode->get<UINT>("P2SCANClient", 6000));
 	m_pApplicationLayer->SetP3CANClientPhys(pptNode->get<UINT>("P3CANClientPhys", 50));
@@ -159,7 +156,6 @@ void CDiagnosticControl::SaveConfig()
 	pptNode->put("Mode", m_pPhysicalLayer->GetMode());
 
 	pptNode = &ptChild.add("CNetworkLayer", "");
-	pptNode->put("FullDuplex", m_pNetworkLayer->IsFullDuplex());
 	pptNode->put("SeparationTimeMin", m_pNetworkLayer->GetSeparationTimeMin());
 	pptNode->put("BlockSize", m_pNetworkLayer->GetBlockSize());
 	pptNode->put("WaitFrameTransimissionMax", m_pNetworkLayer->GetWaitFrameTransimissionMax());
@@ -172,10 +168,8 @@ void CDiagnosticControl::SaveConfig()
 
 	pptNode = &ptChild.add("CApplicationLayer", "");
 	pptNode->put("TesterPhysicalAddress", m_pApplicationLayer->GetTesterPhysicalAddress());
-	pptNode->put("ECUAddress", m_pApplicationLayer->GetECUAddress());
-	pptNode->put("ECUFunctionalAddress", m_pApplicationLayer->GetECUAddress());
-	pptNode->put("RemoteDiagnostic", m_pApplicationLayer->IsRemoteDiagnostic());
-	pptNode->put("RemoteDiagnosticAddress", m_pApplicationLayer->GetRemoteDiagnosticAddress());
+	pptNode->put("ECUPhysicalAddress", m_pApplicationLayer->GetECUPhysicalAddress());
+	pptNode->put("ECUFunctionalAddress", m_pApplicationLayer->GetECUFunctionalAddress());
 	pptNode->put("P2CANClient", m_pApplicationLayer->GetP2CANClient());
 	pptNode->put("P2SCANClient", m_pApplicationLayer->GetP2SCANClient());
 	pptNode->put("P3CANClientPhys", m_pApplicationLayer->GetP3CANClientPhys());
@@ -197,12 +191,12 @@ void CDiagnosticControl::ResetTiming()
 	m_dwStartTick = GetTickCount();
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, LPCTSTR lpszDescription, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color) const
 {
 	_AddWatchEntry(layerType, entryType, nID, lpszDescription, color);
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, const BYTEVector &vbyData, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color) const
 {
 	CString csDescription;
 	for (BYTEVector::const_iterator iter = vbyData.cbegin(); iter != vbyData.cend(); ++iter)
@@ -216,21 +210,21 @@ void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType,
 	_AddWatchEntry(layerType, entryType, nID, csDescription, color);
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, UINT nDescriptionID, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, Color color) const
 {
 	CString csDescription;
 	csDescription.LoadString(nDescriptionID);
 	_AddWatchEntry(layerType, entryType, nID, csDescription, color);
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, UINT nDescriptionID, int nData, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color) const
 {
 	CString csDescription;
 	csDescription.Format(nDescriptionID, nData);
 	_AddWatchEntry(layerType, entryType, nID, csDescription, color);
 }
 
-void CDiagnosticControl::_AddWatchEntry(LayerType layerType, EntryType entryType, UINT nID, LPCTSTR lpszDescription, Color color) const
+void CDiagnosticControl::_AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color) const
 {
 	CTIDCWatchWnd *pWatchWnd = NULL;
 	switch (layerType)

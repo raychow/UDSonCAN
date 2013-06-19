@@ -8,10 +8,14 @@
 #include "DiagnosticControl.h"
 #include "resource.h"
 
-CNetworkLayer::Message::Message()
+using std::lock_guard;
+using std::mutex;
+using std::recursive_mutex;
+using std::unique_lock;
+
+CNetworkLayer::MessageBuffer::MessageBuffer()
 	: status(Status::Idle)
 	, stLocation(0)
-	, messageType(MessageType::Unknown)
 	, pciType(PCIType::Unknown)
 	, bySeparationTimeMin(0)
 	, nRemainderFrameCount(0)
@@ -19,29 +23,31 @@ CNetworkLayer::Message::Message()
 	, dwTimingStartTick(0)
 	, timingType(TimingType::Idle)
 {
-	address.nUnionAddress = 0;
 }
 
-CNetworkLayer::Message::Compare::Compare(UINT nAddress)
+BOOL CNetworkLayer::MessageBuffer::IsBusy()
 {
-	m_nAddress = nAddress;
+	lock_guard<recursive_mutex> lg(rmutexMessageBuffer);
+	return status != Status::Idle;
 }
 
-BOOL CNetworkLayer::Message::Compare::operator()(const Message *pMessage) const
+BOOL CNetworkLayer::MessageBuffer::IsRequest()
 {
-	return pMessage->address.nUnionAddress == m_nAddress;
+	lock_guard<recursive_mutex> lg(rmutexMessageBuffer);
+	return  status == Status::TransmitInProgress && pciType != PCIType::FlowControl
+		|| status == Status::ReceiveInProgress && pciType == PCIType::FlowControl;
 }
 
-void CNetworkLayer::Message::ResetTiming(TimingType timingType, CEvent &eventTiming)
+void CNetworkLayer::MessageBuffer::ResetTiming(TimingType timingType, CEvent &eventTiming)
 {
-	TRACE(_T("CNetworkLayer::ResetTiming 0x%X: %d\n"), address.nUnionAddress, timingType);
+	TRACE(_T("CNetworkLayer::ResetTiming: %d\n"), timingType);
 	
-	CSingleLock lockProcess(&csectionProcess);
+	{
+		lock_guard<recursive_mutex> lg(rmutexMessageBuffer);
 
-	lockProcess.Lock();
-	this->timingType = timingType;
-	dwTimingStartTick = GetTickCount();
-	lockProcess.Unlock();
+		this->timingType = timingType;
+		dwTimingStartTick = GetTickCount();
+	}
 
 	if (timingType != TimingType::Idle)
 	{
@@ -49,12 +55,12 @@ void CNetworkLayer::Message::ResetTiming(TimingType timingType, CEvent &eventTim
 	}
 }
 
-void CNetworkLayer::Message::AbortMessage()
+void CNetworkLayer::MessageBuffer::ClearMessage()
 {
+	lock_guard<recursive_mutex> lg(rmutexMessageBuffer);
 	status = Status::Idle;
 	vbyData.clear();
 	stLocation = 0;
-	messageType = MessageType::Unknown;
 	pciType = PCIType::Unknown;
 	bySeparationTimeMin = 0;
 	nRemainderFrameCount = 0;
@@ -64,8 +70,7 @@ void CNetworkLayer::Message::AbortMessage()
 }
 
 CNetworkLayer::CNetworkLayer(void)
-	: m_bFullDuplex(FALSE)
-	, m_bySeparationTimeMin(0)
+	: m_bySeparationTimeMin(0)
 	, m_byBlockSize(0xFF)
 	, m_nWaitFrameTransimissionMax(0)
 	, m_pApplicationLayer(NULL)
@@ -142,21 +147,6 @@ void CNetworkLayer::SetCr(UINT nCr)
 {
 	m_anTimingParameters[5] = nCr;
 }
-//
-//CNetworkLayer::Status CNetworkLayer::GetStatus() const
-//{
-//	return m_status;
-//}
-
-BOOL CNetworkLayer::IsFullDuplex() const
-{
-	return m_bFullDuplex;
-}
-
-void CNetworkLayer::SetFullDuplex(BOOL bFullDuplex)
-{
-	m_bFullDuplex = bFullDuplex;
-}
 
 BYTE CNetworkLayer::GetSeparationTimeMin() const
 {
@@ -188,208 +178,81 @@ void CNetworkLayer::SetWaitFrameTransimissionMax(UINT nWaitFrameTransimissionMax
 	m_nWaitFrameTransimissionMax = nWaitFrameTransimissionMax;
 }
 
-BOOL CNetworkLayer::Request(MessageType messageType, BYTE bySourceAddress, BYTE byTargetAddress, TargetAddressType targetAddressType, BYTE byAddressExtension, const BYTEVector &vbyData)
+BOOL CNetworkLayer::Request(INT32 nID, const BYTEVector &vbyData)
 {
-	if (messageType == MessageType::Diagnostics && vbyData.size() < DIAGNOSTICSFRAMEDATALENGTH || messageType == MessageType::RemoteDiagnostics && vbyData.size() < REMOTEDIAGNOSTICSFRAMEDATALENGTH)
+	if (!_FillBuffer(Status::TransmitInProgress, nID, vbyData))	// 当前尚有未完成的发送任务。
 	{
-		return _Request(PCIType::SingleFrame, messageType, bySourceAddress, byTargetAddress, targetAddressType, byAddressExtension, vbyData);
+		return FALSE;
+	}
+	return _Request();
+	//if (vbyData.size() < DIAGNOSTICSFRAMEDATALENGTH)
+	//{
+	//	return _Request(PCIType::SingleFrame, nID, vbyData);
+	//}
+	//else
+	//{
+	//	return _Request(PCIType::FirstFrame, nID, vbyData);
+	//}
+}
+
+BOOL CNetworkLayer::_FillBuffer(Status status, INT32 nID, const BYTEVector &vbyData)
+{
+	std::unique_lock<recursive_mutex> ul(m_messageBuffer.rmutexMessageBuffer, std::try_to_lock);
+	if (!ul.owns_lock() || m_messageBuffer.IsBusy())
+	{
+		return FALSE;
+	}
+	m_messageBuffer.status = status;
+	m_messageBuffer.nID = nID;
+	m_messageBuffer.vbyData = vbyData;
+	m_messageBuffer.stLocation = 0;
+	m_messageBuffer.bySeparationTimeMin = 0;
+	m_messageBuffer.nRemainderFrameCount = 0;
+	m_messageBuffer.byExpectedSequenceNumber = 0;
+	m_messageBuffer.dwTimingStartTick = 0;
+	m_messageBuffer.timingType = TimingType::Idle;
+
+	if (vbyData.size() < DIAGNOSTICSFRAMEDATALENGTH)
+	{
+		m_messageBuffer.pciType = PCIType::SingleFrame;
 	}
 	else
 	{
-		return _Request(PCIType::FirstFrame, messageType, bySourceAddress, byTargetAddress, targetAddressType, byAddressExtension, vbyData);
+		m_messageBuffer.pciType = PCIType::FirstFrame;
 	}
+	return TRUE;
 }
 
-CNetworkLayer::Message *CNetworkLayer::FindMessage(BOOL bAddIfNotFound, BYTE bySourceAddress, BYTE byTargetAddress, TargetAddressType targetAddressType, BYTE byAddressExtension, BOOL bTesterPresent)
-{
-#ifdef NETWORKLAYER_NOAE
-	byAddressExtension = 0;
-#endif
-
-	Message::Address address;
-	address.bitField.bySourceAddress = bySourceAddress;
-	address.bitField.byTargetAddress = byTargetAddress;
-	address.bitField.targetAddressType = targetAddressType;
-	address.bitField.bTesterPresent = bTesterPresent;
-	address.bitField.byAddressExtension = byAddressExtension;
-
-	CSingleLock lockMessageList(&m_csectionMessageList);
-	lockMessageList.Lock();
-	PMessageList::const_iterator iterMessage = std::find_if(m_lpMessage.cbegin(), m_lpMessage.cend(), Message::Compare(address.nUnionAddress));
-	if (iterMessage == m_lpMessage.cend())
-	{
-		if (bAddIfNotFound)
-		{
-			m_lpMessage.push_back(new Message());
-			Message *pMessage = m_lpMessage.back();
-			pMessage->address.nUnionAddress = address.nUnionAddress;
-			return pMessage;
-		}
-		else
-		{
-			return NULL;
-		}
-	}
-	return *iterMessage;
-}
-
-CNetworkLayer::MessageType CNetworkLayer::GetMessageType(BYTE byPF) const
-{
-	if (byPF == static_cast<BYTE>(J1939ParameterGroupNumber::NormalFixedAddressingPhysical) || byPF == static_cast<BYTE>(J1939ParameterGroupNumber::NormalFixedAddressingFunctional))
-	{
-		return MessageType::Diagnostics;
-	}
-	else if (byPF == static_cast<BYTE>(J1939ParameterGroupNumber::MixedAddressingPhysical) || byPF ==static_cast<BYTE>( J1939ParameterGroupNumber::MixedAddressingFunctional))
-	{
-		return MessageType::RemoteDiagnostics;
-	}
-	else
-	{
-		return MessageType::Unknown;
-	}
-}
-
-CNetworkLayer::TargetAddressType CNetworkLayer::GetTargetAddressType(BYTE byPF) const
-{
-	if (byPF == static_cast<BYTE>(J1939ParameterGroupNumber::NormalFixedAddressingPhysical) || byPF == static_cast<BYTE>(J1939ParameterGroupNumber::MixedAddressingPhysical))
-	{
-		return TargetAddressType::Physical;
-	}
-	else if (byPF == static_cast<BYTE>(J1939ParameterGroupNumber::NormalFixedAddressingFunctional) || byPF == static_cast<BYTE>(J1939ParameterGroupNumber::MixedAddressingFunctional))
-	{
-		return TargetAddressType::Functional;
-	}
-	else
-	{
-		return TargetAddressType::Unknown;
-	}
-}
-
-BOOL CNetworkLayer::_Request(PCIType pciType, MessageType messageType, BYTE bySourceAddress, BYTE byTargetAddress, TargetAddressType targetAddressType, BYTE byAddressExtension, const BYTEVector &vbyData)
+BOOL CNetworkLayer::_Request()
 {
 	ASSERT(m_pDataLinkLayer);
 
 	TRACE(_T("\nNetworkLayer::_Request.\n"));
-	// _AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUEST);
+	// _AddWatchEntry(EntryType::Transmit, nID, IDS_NETWORKLAYERWATCH_REQUEST);
 
-	if (messageType == MessageType::Diagnostics)
-	{
-		byAddressExtension = 0;
-	}
-	else
-	{
-		if (pciType != PCIType::SingleFrame)
-		{
-			TRACE(_T("A functionally addressed request message shall only be a single-frame message. Request aborted.\n"));
-			_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTFUNCTIONALADDRESSISNOTSINGLEFRAME, Color::Red);
-			return FALSE;
-		}
-	}
+	unique_lock<recursive_mutex> ul(m_messageBuffer.rmutexMessageBuffer);
 
-#ifdef NETWORKLAYER_NOAE
-	byAddressExtension = 0;
-#endif
-
-	Message *pMessage;
-	if (pciType == PCIType::FlowControl)
+	if (!m_messageBuffer.IsRequest())
 	{
-		pMessage = FindMessage(
-			FALSE,
-			byTargetAddress,
-			bySourceAddress,
-			targetAddressType,
-			byAddressExtension);
-	}
-	else
-	{
-		pMessage = FindMessage(
-			pciType != PCIType::ConsecutiveFrame,
-			bySourceAddress,
-			byTargetAddress,
-			targetAddressType,
-			byAddressExtension,
-			vbyData.empty() ? FALSE : vbyData.at(messageType == MessageType::RemoteDiagnostics) == TESETRPRESENTSERVICEID);
-	}
-
-	if (!pMessage)
-	{
-		TRACE(_T("Requested an unexpected CF or FC frame, request aborted.\n"));
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTNOTEXPECTED, Color::Red);
+		TRACE(_T("Status is incorrect.\n"));
+		ASSERT(FALSE);
 		return FALSE;
 	}
-	// ID
-	UINT nID = J1939IDTEMPLET;
-	UINT nPDUFormat = 0;
-	switch (messageType)
-	{
-	case MessageType::Diagnostics:
-		switch (targetAddressType)
-		{
-		case TargetAddressType::Physical:
-			nPDUFormat = static_cast<BYTE>(J1939ParameterGroupNumber::NormalFixedAddressingPhysical);
-			break;
-		case TargetAddressType::Functional:
-			nPDUFormat = static_cast<BYTE>(J1939ParameterGroupNumber::NormalFixedAddressingFunctional);
-			break;
-		default:
-			TRACE(_T("Unknown TargetAddressType.\n"));
-			_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_UNKNOWNTARGETADDRESSTYPE, Color::Red);
-			return FALSE;
-		}
-		break;
-	case MessageType::RemoteDiagnostics:
-		switch (targetAddressType)
-		{
-		case TargetAddressType::Physical:
-			nPDUFormat = static_cast<BYTE>(J1939ParameterGroupNumber::MixedAddressingPhysical);
-			break;
-		case TargetAddressType::Functional:
-			nPDUFormat = static_cast<BYTE>(J1939ParameterGroupNumber::MixedAddressingFunctional);
-			break;
-		default:
-			TRACE(_T("Unknown TargetAddressType.\n"));
-			_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_UNKNOWNTARGETADDRESSTYPE, Color::Red);
-			return FALSE;
-		}
-		break;
-	default:
-		TRACE(_T("Unknown MessageType.\n"));
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_UNKNOWNMESSAGETYPE, Color::Red);
-		return FALSE;
-	}
-	nPDUFormat = nPDUFormat << 16;
-	UINT nTargetAddress = byTargetAddress;
-	nTargetAddress = nTargetAddress << 8;
-	nID = nID | nPDUFormat | nTargetAddress | bySourceAddress;
-
-	CSingleLock lockProcess(&pMessage->csectionProcess);
-	lockProcess.Lock();
 
 	// Data
 	BYTEVector vbyPDU;
 	vbyPDU.reserve(CANFRAMEDATALENGTHMAX);
-	if (messageType == MessageType::RemoteDiagnostics)
-	{
-		vbyPDU.push_back(byAddressExtension);
-	}
+
 	BYTE byPCIFirst;
-	byPCIFirst = static_cast<BYTE>(pciType) << 4;
-	UINT nDataSize = vbyData.size();
-	UINT nPDUDataSize;	// PDU 包含的数据长度，在首帧中需要减一，流控制帧中不包含数据帧。
-	if (messageType == MessageType::Diagnostics)
-	{
-		nPDUDataSize = DIAGNOSTICSFRAMEDATALENGTH;
-	}
-	else
-	{
-		nPDUDataSize = REMOTEDIAGNOSTICSFRAMEDATALENGTH;
-	}
-	switch (pciType)
+	byPCIFirst = static_cast<BYTE>(m_messageBuffer.pciType) << 4;
+	UINT nDataSize = m_messageBuffer.vbyData.size();
+	UINT nPDUDataSize = DIAGNOSTICSFRAMEDATALENGTH;	// PDU 包含的数据长度，在首帧中需要减一，流控制帧中不包含数据帧。
+
+	switch (m_messageBuffer.pciType)
 	{
 	case PCIType::SingleFrame:
 		TRACE(_T("SingleFrame.\n"));
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTSINGLEFRAME);
-		pMessage->AbortMessage();
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTSINGLEFRAME);
 
 		if (nDataSize > nPDUDataSize)
 		{
@@ -397,9 +260,8 @@ BOOL CNetworkLayer::_Request(PCIType pciType, MessageType messageType, BYTE bySo
 		}
 		byPCIFirst = byPCIFirst | nDataSize;
 		vbyPDU.push_back(byPCIFirst);
-		vbyPDU.insert(vbyPDU.cend(), vbyData.cbegin(), vbyData.cbegin() + nDataSize);
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, vbyPDU);
-		pMessage->pciType = pciType;
+		vbyPDU.insert(vbyPDU.cend(), m_messageBuffer.vbyData.cbegin(), m_messageBuffer.vbyData.cbegin() + nDataSize);
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, vbyPDU);
 		break;
 	case PCIType::FirstFrame:
 		TRACE(_T("FirstFrame.\n"));
@@ -407,267 +269,147 @@ BOOL CNetworkLayer::_Request(PCIType pciType, MessageType messageType, BYTE bySo
 		{
 			nDataSize = 0xFFF;
 		}
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTFIRSTFRAME);
-
-		pMessage->AbortMessage();
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTFIRSTFRAME);
 
 		--nPDUDataSize;
 		byPCIFirst = byPCIFirst | nDataSize >> 8;
 		vbyPDU.push_back(byPCIFirst);
 		vbyPDU.push_back(nDataSize & 0xFF);
-		vbyPDU.insert(vbyPDU.cend(), vbyData.cbegin(), vbyData.cbegin() + nPDUDataSize);
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, vbyPDU);
-		pMessage->status = Status::TransmitInProgress;
-		pMessage->vbyData.insert(pMessage->vbyData.cend(), vbyData.cbegin(), vbyData.cbegin() + nDataSize);
-		pMessage->stLocation = nPDUDataSize;
-		pMessage->nRemainderFrameCount = 0;
-		pMessage->byExpectedSequenceNumber = 1;
+		vbyPDU.insert(vbyPDU.cend(), m_messageBuffer.vbyData.cbegin(), m_messageBuffer.vbyData.cbegin() + nPDUDataSize);
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, vbyPDU);
+		m_messageBuffer.stLocation = nPDUDataSize;
+		m_messageBuffer.nRemainderFrameCount = 0;
+		m_messageBuffer.byExpectedSequenceNumber = 1;
 		break;
 	case PCIType::ConsecutiveFrame:
+		TRACE(_T("ConsecutiveFrame.\n"));
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTCONSECUTIVEFRAME);
+		if (!m_messageBuffer.nRemainderFrameCount || m_messageBuffer.vbyData.size() <= m_messageBuffer.stLocation)
 		{
-			TRACE(_T("ConsecutiveFrame.\n"));
-			_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTCONSECUTIVEFRAME);
-			if (pMessage->status != Status::TransmitInProgress)
-			{
-				TRACE(_T("Status is not TransmitInProgress, request aborted.\n"));
-				_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_NOTTRANSMITINPROGRESS, Color::Red);
-				return FALSE;
-			}
-			if (!pMessage->nRemainderFrameCount)
-			{
-				TRACE(_T("No more remainder frame, request aborted.\n"));
-				_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTNOREMAINDERFRAME, Color::Red);
-				return FALSE;
-			}
-			byPCIFirst = byPCIFirst | pMessage->byExpectedSequenceNumber;           
-			pMessage->byExpectedSequenceNumber = (pMessage->byExpectedSequenceNumber + 1) % 0x10;
-			vbyPDU.push_back(byPCIFirst);
-			nPDUDataSize = min(nPDUDataSize, pMessage->vbyData.size() - pMessage->stLocation);
-			vbyPDU.insert(vbyPDU.cend(), pMessage->vbyData.cbegin() + pMessage->stLocation, pMessage->vbyData.cbegin() + pMessage->stLocation + nPDUDataSize);
-			_AddWatchEntry(EntryType::Transmit, byTargetAddress, vbyPDU);
-			pMessage->stLocation += nPDUDataSize;
-			--pMessage->nRemainderFrameCount;
-			if (pMessage->vbyData.size() <= pMessage->stLocation)
-			{
-				pMessage->status = Status::Idle;
-			}
-			break;
-		}
-	case PCIType::FlowControl:
-		TRACE(_T("FlowControl.\n"));
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_REQUESTFLOWCONTROL, m_byBlockSize);
-
-		if (pMessage->status != Status::ReceiveInProgress)
-		{
-			TRACE(_T("Status is not ReceiveInProgress, request aborted.\n"));
-			_AddWatchEntry(EntryType::Transmit, byTargetAddress, IDS_NETWORKLAYERWATCH_NOTRECEIVEINPROGRESS, Color::Red);
+			TRACE(_T("No more remainder frame or data, request aborted.\n"));
+			_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTNOREMAINDERFRAME, Color::Red);
 			return FALSE;
 		}
+		byPCIFirst = byPCIFirst | m_messageBuffer.byExpectedSequenceNumber;           
+		m_messageBuffer.byExpectedSequenceNumber = (m_messageBuffer.byExpectedSequenceNumber + 1) % 0x10;
+		vbyPDU.push_back(byPCIFirst);
+		nPDUDataSize = min(nPDUDataSize, m_messageBuffer.vbyData.size() - m_messageBuffer.stLocation);
+		vbyPDU.insert(vbyPDU.cend(), m_messageBuffer.vbyData.cbegin() + m_messageBuffer.stLocation, m_messageBuffer.vbyData.cbegin() + m_messageBuffer.stLocation + nPDUDataSize);
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, vbyPDU);
+		m_messageBuffer.stLocation += nPDUDataSize;
+		--m_messageBuffer.nRemainderFrameCount;
+		break;
+	case PCIType::FlowControl:
+		TRACE(_T("FlowControl.\n"));
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTFLOWCONTROL, m_byBlockSize);
 
-		pMessage->nRemainderFrameCount = m_byBlockSize;
 		// 暂时仅发送 ContinueToSend。
 		byPCIFirst = byPCIFirst | 0x0;
 		vbyPDU.push_back(byPCIFirst);
 		vbyPDU.push_back(m_byBlockSize);
 		vbyPDU.push_back(m_bySeparationTimeMin);
-		_AddWatchEntry(EntryType::Transmit, byTargetAddress, vbyPDU);
+		_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, vbyPDU);
 		break;
 	}
-	pMessage->messageType = messageType;
-	pMessage->pciType = pciType;
 	
-	BOOL bFlowControl = pciType == PCIType::FlowControl;
-	if (bFlowControl)
+	if (m_messageBuffer.pciType == PCIType::FlowControl)
 	{
-		pMessage->ResetTiming(TimingType::Ar, m_eventTiming);
+		m_messageBuffer.ResetTiming(TimingType::Ar, m_eventTiming);
 	}
 	else
 	{
-		pMessage->ResetTiming(TimingType::As, m_eventTiming);
+		m_messageBuffer.ResetTiming(TimingType::As, m_eventTiming);
 	}
 
-	lockProcess.Unlock();
+	ul.unlock();
 
-	return m_pDataLinkLayer->Request(nID, vbyPDU, bFlowControl);
+	return m_pDataLinkLayer->Request(m_messageBuffer.nID, vbyPDU);
 }
 
-void CNetworkLayer::Confirm(UINT nID, BYTE byAddressExtension, BOOL bReverseAddress)
+void CNetworkLayer::Confirm(INT32 nID)
 {
 	ASSERT(m_pApplicationLayer);
-	CDataLinkLayer::CANID canID;
-	canID.nID = nID;
-
-	if (GetMessageType(canID.bitField.PF) == MessageType::Diagnostics)
-	{
-		byAddressExtension = 0;
-	}
-
-#ifdef NETWORKLAYER_NOAE
-	byAddressExtension = 0;
-#endif
 
 	TRACE(_T("CNetworkLayer::Confirm\n"));
 
-	if (bReverseAddress)
-	{
-		BYTE byTemp = canID.bitField.SA;
-		canID.bitField.SA = canID.bitField.PS;
-		canID.bitField.PS = byTemp;
-	}
+	_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_CONFIRM);
 
-	_AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_CONFIRM);
+	unique_lock<recursive_mutex> ul(m_messageBuffer.rmutexMessageBuffer);
 
-	Message *pMessage = FindMessage(FALSE, canID.bitField.SA, canID.bitField.PS, GetTargetAddressType(canID.bitField.PF), byAddressExtension);
-	if (!pMessage)
+	if (!m_messageBuffer.IsRequest())
 	{
-		TRACE(_T("Can not confirm a frame not in message list.\n"));
-		_AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_CONFIRMNOTINMESSAGELIST, Color::Red);
+		TRACE(_T("Status is incorrect.\n"));
+		_AddWatchEntry(EntryType::Confirm, 0, IDS_NETWORKLAYERWATCH_CONFIRMUNEXPECTED, Color::Red);
 		return;
 	}
 
-	CSingleLock lockProcess(&m_csectionProcess);
-	lockProcess.Lock();
-	
-	switch (pMessage->pciType)
+	switch (m_messageBuffer.pciType)
 	{
 	case PCIType::SingleFrame:
 		TRACE(_T("SingleFrame.\n"));
-		m_pApplicationLayer->Confirm(
-			pMessage->messageType,
-			pMessage->address.bitField.bySourceAddress,
-			pMessage->address.bitField.byTargetAddress,
-			pMessage->address.bitField.targetAddressType,
-			byAddressExtension,
-			Result::N_OK);
-		pMessage->ResetTiming(TimingType::Idle, m_eventTiming);
-		_AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_REQUESTFINISHED, Color::Green);
+		m_pApplicationLayer->Confirm(m_messageBuffer.nID, Result::N_OK);
+		m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
+		_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTFINISHED, Color::Green);
+		m_messageBuffer.ClearMessage();
 		break;
 	case PCIType::FirstFrame:
 		TRACE(_T("FirstFrame.\n"));
-		pMessage->ResetTiming(TimingType::Bs, m_eventTiming);
-		_AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_WAITFORFLOWCONTROL);
+		m_messageBuffer.ResetTiming(TimingType::Bs, m_eventTiming);
+		_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_WAITFORFLOWCONTROL);
+		m_messageBuffer.pciType = PCIType::FlowControl;
 		break;
 	case PCIType::ConsecutiveFrame:
+		TRACE(_T("ConsecutiveFrame.\n"));
+		if (m_messageBuffer.stLocation < m_messageBuffer.vbyData.size())
 		{
-			TRACE(_T("ConsecutiveFrame.\n"));
-			if (Status::TransmitInProgress == pMessage->status)
+			if (0 != m_messageBuffer.nRemainderFrameCount)		// 如果尚剩余未发送的帧，则会继续发送；
 			{
-				if (0 != pMessage->nRemainderFrameCount)				// 如果尚剩余未发送的帧，则会继续发送；
+				m_messageBuffer.ResetTiming(TimingType::Cs, m_eventTiming);
+				TRACE(_T("Continue to request CF.\n"));
+				// _AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_CONTINUETOREQUESTCF);
+				if (WaitForSingleObject(m_eventStopThread.m_hObject, m_messageBuffer.bySeparationTimeMin) == WAIT_TIMEOUT)
 				{
-					pMessage->ResetTiming(TimingType::Cs, m_eventTiming);
-					TRACE(_T("Continue to request CF.\n"));
-					// _AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_CONTINUETOREQUESTCF);
-					if (WaitForSingleObject(m_eventStopThread.m_hObject, pMessage->bySeparationTimeMin) == WAIT_TIMEOUT)
-					{
-						_Request(
-							PCIType::ConsecutiveFrame,
-							pMessage->messageType,
-							pMessage->address.bitField.bySourceAddress,
-							pMessage->address.bitField.byTargetAddress,
-							pMessage->address.bitField.targetAddressType,
-							byAddressExtension,
-							pMessage->vbyData);
-					}
-				}
-				else											// 如果没有未发送的帧，则会等待流控制帧。
-				{
-					pMessage->ResetTiming(TimingType::Bs, m_eventTiming);
-					TRACE(_T("Wait for FC.\n"));
-					_AddWatchEntry(EntryType::Transmit, canID.bitField.PS, IDS_NETWORKLAYERWATCH_WAITFORFLOWCONTROL);
+					_Request();
 				}
 			}
-			else if (Status::Idle == pMessage->status)
+			else												// 如果没有未发送的帧，则会等待流控制帧。
 			{
-				if (pMessage->vbyData.size() <= pMessage->stLocation)	// 如果多帧已经发送完毕。
-				{
-					TRACE(_T("Multiframe request finished.\n"));
-					_AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_REQUESTFINISHED, Color::Green);
-					m_pApplicationLayer->Confirm(
-						pMessage->messageType,
-						pMessage->address.bitField.bySourceAddress,
-						pMessage->address.bitField.byTargetAddress,
-						pMessage->address.bitField.targetAddressType,
-						byAddressExtension,
-						Result::N_OK);
-					pMessage->ResetTiming(TimingType::Idle, m_eventTiming);
-				}
+				m_messageBuffer.ResetTiming(TimingType::Bs, m_eventTiming);
+				m_messageBuffer.pciType = PCIType::FlowControl;
+				TRACE(_T("Wait for FC.\n"));
+				_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_WAITFORFLOWCONTROL);
 			}
+		}
+		else
+		{
+			TRACE(_T("Multiframe request finished.\n"));
+			_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTFINISHED, Color::Green);
+			m_pApplicationLayer->Confirm(m_messageBuffer.nID, Result::N_OK);
+			m_messageBuffer.ClearMessage();
+			//m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
 		}
 		break;
 	case PCIType::FlowControl:
 		// 如果是发送的是等待帧，则应设置 Br 计时器；
 		// 但程序假设永不等待，Br 实际未使用。
 		TRACE(_T("FlowControl.\n"));
-		pMessage->ResetTiming(TimingType::Cr, m_eventTiming);
+		m_messageBuffer.ResetTiming(TimingType::Cr, m_eventTiming);
+		m_messageBuffer.nRemainderFrameCount = m_byBlockSize;
+		m_messageBuffer.pciType = PCIType::ConsecutiveFrame;
 		break;
 	}
 }
 
-void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
+void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 {
 	ASSERT(m_pApplicationLayer);
 	TRACE(_T("CNetworkLayer::Indication: 0x%X\n"), nID);
 
-	CDataLinkLayer::CANID canID;
-	canID.nID = nID;
-
-	MessageType messageType = GetMessageType(canID.bitField.PF);
-	TargetAddressType targetAddressType = GetTargetAddressType(canID.bitField.PF);
-	if (messageType == MessageType::Unknown || targetAddressType == TargetAddressType::Unknown)
-	{
-		TRACE(_T("Unknown CANID.PF"));
-		_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_UNKNOWNCANID, Color::Red);
-		return;
-	}
-
-	UINT nPCIIndex = messageType == MessageType::RemoteDiagnostics;
-	BYTE byPCIFirst = vbyData.at(nPCIIndex);
+	BYTE byPCIFirst = vbyData.at(0);
 	BYTE byPCIType = (byPCIFirst & 0xF0) >> 4;
-	TRACE(_T("MessageType: %d, TargetAddressType: %d, PCIType: %d;\n"), messageType, targetAddressType, byPCIType);
+	TRACE(_T("PCIType: %d;\n"), byPCIType);
 
-	BYTE byAddressExtension = 0;
-	if (messageType == MessageType::RemoteDiagnostics)
-	{
-		if (byPCIType != static_cast<BYTE>(PCIType::SingleFrame))
-		{
-			TRACE(_T("A functionally addressed request message shall only be a single-frame message. Indication aborted.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONFUNCTIONALADDRESSISNOTSINGLEFRAME, Color::Red);
-			return;
-		}
-		byAddressExtension = vbyData.at(1);
-	}
-
-#ifdef NETWORKLAYER_NOAE
-	byAddressExtension = 0;
-#endif
-
-	Message *pMessage = NULL;
-	
-	if (static_cast<BYTE>(PCIType::FlowControl) == byPCIType)
-	{
-		if (!(pMessage = FindMessage(FALSE, canID.bitField.PS, canID.bitField.SA, targetAddressType, byAddressExtension)))
-		{
-			TRACE(_T("Received an unexpected FC Frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONUNEXPECTEDFCFRAME, Color::Red);
-			return;
-		}
-	}
-	else if (static_cast<BYTE>(PCIType::ConsecutiveFrame) == byPCIType)
-	{
-		if (!(pMessage = FindMessage(FALSE, canID.bitField.SA, canID.bitField.PS, targetAddressType, byAddressExtension)))
-		{
-			TRACE(_T("Received an unexpected CF Frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONUNEXPECTEDCFFRAME, Color::Red);
-			return;
-		}
-	}
-	else
-	{
-		pMessage = FindMessage(TRUE, canID.bitField.SA, canID.bitField.PS, targetAddressType, byAddressExtension);
-	}
-	
-	CSingleLock lockProcess(&pMessage->csectionProcess);
-	lockProcess.Lock();
+	unique_lock<recursive_mutex> ul(m_messageBuffer.rmutexMessageBuffer);
 
 	// 对于收到非期望 N_PDU 的处理。
 	// 15765-2: 6.7.3
@@ -675,19 +417,19 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 	{
 	case PCIType::SingleFrame:
 		TRACE(_T("SingleFrame.\n"));
-		_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONSINGLEFRAME);
-		switch (pMessage->status)
+		_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INDICATIONSINGLEFRAME);
+		switch (m_messageBuffer.status)
 		{
 		case Status::TransmitInProgress:
 			TRACE(_T("TransmitInProgress, discard received frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
 			return;
 			break;
 		case Status::ReceiveInProgress:
 			TRACE(_T("ReceiveInProgress, discard previous receive.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDPREVIOUSRECEIVE, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDPREVIOUSRECEIVE, Color::Red);
 			m_pApplicationLayer->Indication(Result::N_UNEXP_PDU);
-			pMessage->AbortMessage();
+			m_messageBuffer.ClearMessage();
 			break;
 		case Status::Idle:
 			break;
@@ -695,19 +437,19 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 		break;
 	case PCIType::FirstFrame:
 		TRACE(_T("FirstFrame.\n"));
-		_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONFIRSTFRAME);
-		switch (pMessage->status)
+		_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INDICATIONFIRSTFRAME);
+		switch (m_messageBuffer.status)
 		{
 		case Status::TransmitInProgress:
 			TRACE(_T("TransmitInProgress, discard received frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
 			return;
 			break;
 		case Status::ReceiveInProgress:
 			TRACE(_T("ReceiveInProgress, discard previous receive.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
 			m_pApplicationLayer->Indication(Result::N_UNEXP_PDU);
-			pMessage->AbortMessage();
+			m_messageBuffer.ClearMessage();
 			break;
 		case Status::Idle:
 			break;
@@ -715,50 +457,62 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 		break;
 	case PCIType::ConsecutiveFrame:
 		TRACE(_T("ConsecutiveFrame.\n"));
-		_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONCONSECUTIVEFRAME);
-		switch (pMessage->status)
+		_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INDICATIONCONSECUTIVEFRAME);
+		switch (m_messageBuffer.status)
 		{
 		case Status::TransmitInProgress:
 			TRACE(_T("TransmitInProgress, discard received frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_TRANSMITINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
 			return;
 			break;
 		case Status::ReceiveInProgress:
-			if (!pMessage->nRemainderFrameCount)
+			if (m_messageBuffer.pciType != PCIType::ConsecutiveFrame)
 			{
-				TRACE(_T("No remainder frame, discard received frame..\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_RECEIVENOREMAINDERFRAME, Color::Red);
+				TRACE(_T("Received an unexpected CF.\n"));
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INDICATIONUNEXPECTEDCFFRAME, Color::Red);
+				return;
+			}
+			if (!m_messageBuffer.nRemainderFrameCount)
+			{
+				TRACE(_T("No remainder frame, discard received frame.\n"));
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVENOREMAINDERFRAME, Color::Red);
 				return;
 			}
 			break;
 		case Status::Idle:
 			TRACE(_T("Idle now, discard received frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_IDLEDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_IDLEDISCARDRECEIVEDFRAME, Color::Red);
 			return;
 			break;
 		}
 		break;
 	case PCIType::FlowControl:
 		TRACE(_T("FlowControl.\n"));
-		_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INDICATIONFLOWCONTROL);
-		switch (pMessage->status)
+		_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INDICATIONFLOWCONTROL);
+		switch (m_messageBuffer.status)
 		{
 		case Status::TransmitInProgress:
-			if (pMessage->nRemainderFrameCount)
+			if (m_messageBuffer.pciType != PCIType::FlowControl)
+			{
+				TRACE(_T("Received an unexpected FC.\n"));
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INDICATIONUNEXPECTEDFCFRAME, Color::Red);
+				return;
+			}
+			if (m_messageBuffer.nRemainderFrameCount)
 			{
 				TRACE(_T("Still have reminder frame(s), discard received frame.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_REMAINDERFRAMES, Color::Red);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_REMAINDERFRAMES, Color::Red);
 				return;
 			}
 			break;
 		case Status::ReceiveInProgress:
 			TRACE(_T("ReceiveInProgress, discard received frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
 			return;
 			break;
 		case Status::Idle:
 			TRACE(_T("Idle now, discard received frame.\n"));
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_IDLEDISCARDRECEIVEDFRAME, Color::Red);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_IDLEDISCARDRECEIVEDFRAME, Color::Red);
 			return;
 			break;
 		}
@@ -766,11 +520,11 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 	default:
 		// Unknown N_PDU
 		TRACE(_T("Unknown PDU, discard received frame.\n"));
-		_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_UNKNOWNPDU, Color::Red);
+		_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_UNKNOWNPDU, Color::Red);
 		return;
 	}
 
-	_AddWatchEntry(EntryType::Receive, canID.bitField.SA, vbyData);
+	_AddWatchEntry(EntryType::Receive, nID, vbyData);
 	// 处理收到的 N_PDU。
 	UINT nDataIndex;
 	UINT nApplicationLayerDataLength;
@@ -780,66 +534,66 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 		{
 			// 15675-2: 6.5.2
 			nApplicationLayerDataLength = byPCIFirst & 0x0F;
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTH, nApplicationLayerDataLength);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTH, nApplicationLayerDataLength);
 
 			// 错误处理。
 			if (!nApplicationLayerDataLength)
 			{
 				TRACE(_T("Length is 0, discard this frame.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_NOAPPLICATIONLAYERDATA, Color::Red);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_NOAPPLICATIONLAYERDATA, Color::Red);
 				return;
 			}
-			else if (nApplicationLayerDataLength > 7 || nApplicationLayerDataLength == 7 && messageType == CNetworkLayer::MessageType::RemoteDiagnostics)
+			else if (nApplicationLayerDataLength > DIAGNOSTICSFRAMEDATALENGTH)
 			{
 				TRACE(_T("Length is too long, discard this frame.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTHTOOLONG, Color::Red);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTHTOOLONG, Color::Red);
 				return;
 			}
 
 			// 定时操作。
-			pMessage->ResetTiming(TimingType::Idle, m_eventTiming);
+			m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
 
-			nDataIndex = nPCIIndex + 1;
-			pMessage->vbyData.insert(pMessage->vbyData.cend(), vbyData.cbegin() + nDataIndex, vbyData.cbegin() + nDataIndex + nApplicationLayerDataLength);
-			m_pApplicationLayer->Indication(messageType, canID.bitField.SA, canID.bitField.PS, targetAddressType, byAddressExtension, pMessage->vbyData, Result::N_OK);
-			_AddWatchEntry(EntryType::Confirm, canID.bitField.PS, IDS_NETWORKLAYERWATCH_RECEIVEFINISHED, Color::Green);
+			nDataIndex = 1;
+			m_messageBuffer.vbyData.insert(m_messageBuffer.vbyData.cend(), vbyData.cbegin() + nDataIndex, vbyData.cbegin() + nDataIndex + nApplicationLayerDataLength);
+			m_pApplicationLayer->Indication(nID, m_messageBuffer.vbyData, Result::N_OK);
+			_AddWatchEntry(EntryType::Confirm, nID, IDS_NETWORKLAYERWATCH_RECEIVEFINISHED, Color::Green);
 			break;
 		}
 	case PCIType::FirstFrame:
 		{
 			// 15765-2: 6.5.3
-
-			nApplicationLayerDataLength = (byPCIFirst & 0x0F) << 8 | vbyData.at(nPCIIndex + 1);
+			nApplicationLayerDataLength = (byPCIFirst & 0x0F) << 8 | vbyData.at(1);
 			TRACE(_T("Length is %d.\n"), nApplicationLayerDataLength);
-			_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTH, nApplicationLayerDataLength);
+			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTH, nApplicationLayerDataLength);
 			// 错误处理。IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTH
-			if (nApplicationLayerDataLength < CANFRAMEDATALENGTHMAX && messageType == MessageType::Diagnostics || nApplicationLayerDataLength < 7 && messageType == MessageType::RemoteDiagnostics)
+			if (nApplicationLayerDataLength < CANFRAMEDATALENGTHMAX)
 			{
 				TRACE(_T("Length is too short, discard this frame.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTHTOOSHORT, Color::Red);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_APPLICATIONLAYERDATALENGTHTOOSHORT, Color::Red);
 				return;
 			}
 
 			// 定时操作。
-			pMessage->ResetTiming(TimingType::Br, m_eventTiming);
+			m_messageBuffer.ResetTiming(TimingType::Br, m_eventTiming);
 
-			nDataIndex = nPCIIndex + 2;
+			nDataIndex = 2;
 			// 假设不会溢出。
-			pMessage->vbyData.clear();
-			pMessage->vbyData.resize(nApplicationLayerDataLength);
+			m_messageBuffer.vbyData.clear();
+			m_messageBuffer.vbyData.resize(nApplicationLayerDataLength);
 			for (int i = nDataIndex; i != CANFRAMEDATALENGTHMAX; ++i)
 			{
-				pMessage->vbyData.at(i - nDataIndex) = vbyData.at(i);
+				m_messageBuffer.vbyData.at(i - nDataIndex) = vbyData.at(i);
 			}
 
-			pMessage->status = Status::ReceiveInProgress;
-			pMessage->stLocation = CANFRAMEDATALENGTHMAX - nDataIndex;
-			pMessage->messageType = messageType;
-			pMessage->nRemainderFrameCount = 0;
-			pMessage->byExpectedSequenceNumber = 1;
-			m_pApplicationLayer->FirstFrameIndication(messageType, canID.bitField.SA, canID.bitField.PS, targetAddressType, vbyData.at(0), nApplicationLayerDataLength);
+			m_messageBuffer.status = Status::ReceiveInProgress;
+			m_messageBuffer.nID = nID;
+			m_messageBuffer.stLocation = CANFRAMEDATALENGTHMAX - nDataIndex;
+			m_messageBuffer.pciType = PCIType::FlowControl;
+			m_messageBuffer.nRemainderFrameCount = 0;
+			m_messageBuffer.byExpectedSequenceNumber = 1;
+			m_pApplicationLayer->FirstFrameIndication(nID, nApplicationLayerDataLength);
 
-			_Request(PCIType::FlowControl, messageType, canID.bitField.PS, canID.bitField.SA, targetAddressType, vbyData.at(0), pMessage->vbyData);
+			_Request();
 			break;
 		}
 	case PCIType::ConsecutiveFrame:
@@ -847,37 +601,38 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 			// 15765-2: 6.5.4
 
 			// 错误处理。
-			if (pMessage->byExpectedSequenceNumber != (byPCIFirst & 0x0F))
+			if (m_messageBuffer.byExpectedSequenceNumber != (byPCIFirst & 0x0F))
 			{
 				TRACE(_T("Wrong SN, discard this frame.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_INVALIDSN, Color::Red);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INVALIDSN, Color::Red);
 				m_pApplicationLayer->Indication(Result::N_WRONG_SN);
 				return;
 			}
-			pMessage->byExpectedSequenceNumber = (pMessage->byExpectedSequenceNumber + 1) % 0x10;
+			m_messageBuffer.byExpectedSequenceNumber = (m_messageBuffer.byExpectedSequenceNumber + 1) % 0x10;
 
-			nDataIndex = nPCIIndex + 1;
-			UINT nReceiveLength = min(7, pMessage->vbyData.size() - pMessage->stLocation);
+			nDataIndex = 1;
+			UINT nReceiveLength = min(7, m_messageBuffer.vbyData.size() - m_messageBuffer.stLocation);
 			for (int i = 0; i != nReceiveLength; ++i)
 			{
-				pMessage->vbyData.at(pMessage->stLocation + i) = vbyData.at(i);
+				m_messageBuffer.vbyData.at(m_messageBuffer.stLocation + i) = vbyData.at(i);
 			}
-			pMessage->stLocation += nReceiveLength;
-			--pMessage->nRemainderFrameCount;
-			if (pMessage->stLocation >= pMessage->vbyData.size())
+			m_messageBuffer.stLocation += nReceiveLength;
+			--m_messageBuffer.nRemainderFrameCount;
+			if (m_messageBuffer.stLocation >= m_messageBuffer.vbyData.size())
 			{
 				TRACE(_T("Multiframe receive finished.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_RECEIVEFINISHED, Color::Green);
-				pMessage->ResetTiming(TimingType::Idle, m_eventTiming);
-				pMessage->status = Status::Idle;
-				m_pApplicationLayer->Indication(messageType, canID.bitField.SA, canID.bitField.PS, targetAddressType, vbyData.at(0), pMessage->vbyData, Result::N_OK);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEFINISHED, Color::Green);
+				BYTEVector vbyData = m_messageBuffer.vbyData;
+				m_messageBuffer.ClearMessage();
+				m_pApplicationLayer->Indication(nID, m_messageBuffer.vbyData, Result::N_OK);
 			}
 			else
 			{
-				pMessage->ResetTiming(TimingType::Cr, m_eventTiming);
-				if (!pMessage->nRemainderFrameCount)
+				m_messageBuffer.ResetTiming(TimingType::Cr, m_eventTiming);
+				if (!m_messageBuffer.nRemainderFrameCount)
 				{
-					_Request(PCIType::FlowControl, messageType, canID.bitField.PS, canID.bitField.SA, targetAddressType, vbyData.at(0), pMessage->vbyData);
+					m_messageBuffer.pciType = PCIType::FlowControl;
+					_Request();
 				}
 			}
 			break;
@@ -892,46 +647,47 @@ void CNetworkLayer::Indication(UINT nID, const BYTEVector &vbyData)
 			case FlowControlType::ContinueToSend:
 				{
 					TRACE(_T("FlowControl: ContinueToSend.\n"));
-					pMessage->ResetTiming(TimingType::Cs, m_eventTiming);
-
-					pMessage->bySeparationTimeMin = vbyData.at(nPCIIndex + 2);
-					if (pMessage->bySeparationTimeMin >= 0x80 && pMessage->bySeparationTimeMin <= 0xF0 || pMessage->bySeparationTimeMin >= 0xFA)
+					m_messageBuffer.ResetTiming(TimingType::Cs, m_eventTiming);
+					m_messageBuffer.pciType = PCIType::ConsecutiveFrame;
+					m_messageBuffer.bySeparationTimeMin = vbyData.at(2);
+					if (m_messageBuffer.bySeparationTimeMin >= 0x80 && m_messageBuffer.bySeparationTimeMin <= 0xF0 || m_messageBuffer.bySeparationTimeMin >= 0xFA)
 					{
-						pMessage->bySeparationTimeMin = 0x7F;
+						m_messageBuffer.bySeparationTimeMin = 0x7F;
 					}
-					pMessage->nRemainderFrameCount = vbyData.at(nPCIIndex + 1);
-					_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_FLOWCONTROL_CONTINUETOSEND, pMessage->nRemainderFrameCount);
+					m_messageBuffer.nRemainderFrameCount = vbyData.at(1);
+					_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_FLOWCONTROL_CONTINUETOSEND, m_messageBuffer.nRemainderFrameCount);
 					
 					// 15765-2: 6.5.5.4, Table 14
-					if (!pMessage->nRemainderFrameCount)
+					if (!m_messageBuffer.nRemainderFrameCount)
 					{
-						pMessage->nRemainderFrameCount = -1;	// 取最大值
+						m_messageBuffer.nRemainderFrameCount = -1;	// 取最大值
 					}
 
-					DWORD dwWaitResult = WaitForSingleObject(m_eventStopThread.m_hObject, pMessage->bySeparationTimeMin);
+					DWORD dwWaitResult = WaitForSingleObject(m_eventStopThread.m_hObject, m_messageBuffer.bySeparationTimeMin);
 					if (dwWaitResult == WAIT_TIMEOUT)
 					{
-						_Request(PCIType::ConsecutiveFrame, pMessage->messageType, pMessage->address.bitField.bySourceAddress, pMessage->address.bitField.byTargetAddress, pMessage->address.bitField.targetAddressType, pMessage->address.bitField.byAddressExtension, pMessage->vbyData);
+						_Request();
 					}
 					break;
 				}
 			case FlowControlType::Wait:
 				TRACE(_T("FlowControl: Wait.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_FLOWCONTROL_WAIT);
-				pMessage->ResetTiming(TimingType::Bs, m_eventTiming);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_FLOWCONTROL_WAIT);
+				m_messageBuffer.ResetTiming(TimingType::Bs, m_eventTiming);
 				return;
 				break;
 			case FlowControlType::Overflow:
 				TRACE(_T("FlowControl: Overflow.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_FLOWCONTROL_OVERFLOW, Color::Red);
-				pMessage->ResetTiming(TimingType::Idle, m_eventTiming);
-				m_pApplicationLayer->Confirm(messageType, canID.bitField.SA, canID.bitField.PS, targetAddressType, vbyData.at(0), Result::N_BUFFER_OVFLW);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_FLOWCONTROL_OVERFLOW, Color::Red);
+				m_messageBuffer.ClearMessage();
+				m_pApplicationLayer->Confirm(nID, Result::N_BUFFER_OVFLW);
 				return;
 			default:
 				TRACE(_T("FlowControl: Invalid flowcontrol.\n"));
-				_AddWatchEntry(EntryType::Receive, canID.bitField.SA, IDS_NETWORKLAYERWATCH_FLOWCONTROL_INVALID, Color::Red);
-				pMessage->ResetTiming(TimingType::Idle, m_eventTiming);
-				m_pApplicationLayer->Confirm(messageType, canID.bitField.SA, canID.bitField.PS, targetAddressType, vbyData.at(0), Result::N_INVALID_FS);
+				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_FLOWCONTROL_INVALID, Color::Red);
+				m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
+				m_messageBuffer.ClearMessage();
+				m_pApplicationLayer->Confirm(nID, Result::N_INVALID_FS);
 				return;
 			}
 			break;
@@ -964,10 +720,9 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 	CApplicationLayer *pApplicationLayer = pThis->m_pApplicationLayer;
 	ASSERT(pApplicationLayer);
 	HANDLE hEvents[] = { pThis->m_eventStopThread, pThis->m_eventTiming };
-	CSingleLock lockMessageList(&pThis->m_csectionMessageList);
+	unique_lock<recursive_mutex> ul(pThis->m_messageBuffer.rmutexMessageBuffer, std::defer_lock);
 	DWORD dwWaitResult = -1;
-	PMessageList::const_iterator iter;
-	DWORD dwTimingTickSpan;	// 存在几率极小的 49.7 天归零问题。
+	DWORD dwTimingTickSpan;	// 为兼容 XP，存在几率极小的 49.7 天归零问题。
 	BOOL bTimeout;
 	BOOL bAbort;
 	while (dwWaitResult != WAIT_OBJECT_0)
@@ -976,82 +731,64 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 		if (dwWaitResult == WAIT_OBJECT_0 + 1)
 		{
 			WaitForSingleObject(pThis->m_eventStopThread.m_hObject, TIMINGCYCLE);
-			lockMessageList.Lock();
-			if (pThis->m_lpMessage.empty())
+			if (ul.try_lock())
 			{
-				pThis->m_eventTiming.ResetEvent();
-				lockMessageList.Unlock();
-				continue;
-			}
-			iter = pThis->m_lpMessage.cbegin();
-			while (iter != pThis->m_lpMessage.cend())
-			{
-				Message &message = **iter;
-				if (TryEnterCriticalSection(&message.csectionProcess.m_sect))	// 若检测的消息正被访问，则暂时跳过。
+				if (!pThis->m_messageBuffer.IsBusy() || pThis->m_messageBuffer.timingType == TimingType::Idle)
 				{
-					if (message.timingType == TimingType::Idle)				// 空闲就清除消息。
-					{
-						TRACE(_T("\nIdle now, delete message 0x%X.\n"), message.address.nUnionAddress);
-						PMessageList::const_iterator iterDelete = iter;
-						++iter;
-						delete *iterDelete;
-						pThis->m_lpMessage.erase(iterDelete);
-						continue;
-					}
-					dwTimingTickSpan = GetTickCount() - message.dwTimingStartTick;
-					bTimeout = pThis->m_anTimingParameters[static_cast<UINT>(message.timingType)] < dwTimingTickSpan;
-					if (bTimeout)
-					{
-						bAbort = TRUE;
-						// 15765-2: 6.7.2
-						switch (message.timingType)
-						{
-						case TimingType::As:
-							TRACE(_T("\nNetworkLayer.Timeout.As\n"));
-							pApplicationLayer->Confirm(Result::N_TIMEOUT_A);
-							pThis->_AddWatchEntry(EntryType::Transmit, message.address.bitField.byTargetAddress, IDS_NETWORKLAYERWATCH_TIMEOUT_AS, Color::Red);
-							break;
-						case TimingType::Ar:
-							TRACE(_T("\nNetworkLayer.Timeout.Ar\n"));
-							pApplicationLayer->Indication(Result::N_TIMEOUT_A);
-							pThis->_AddWatchEntry(EntryType::Receive, message.address.bitField.bySourceAddress, IDS_NETWORKLAYERWATCH_TIMEOUT_AR, Color::Red);
-							break;
-						case TimingType::Bs:
-							TRACE(_T("\nNetworkLayer.Timeout.Bs\n"));
-							pApplicationLayer->Confirm(Result::N_TIMEOUT_Bs);
-							pThis->_AddWatchEntry(EntryType::Transmit, message.address.bitField.byTargetAddress, IDS_NETWORKLAYERWATCH_TIMEOUT_BS, Color::Red);
-							break;
-						case TimingType::Br:
-							TRACE(_T("\nNetworkLayer.Timeout.Br\n"));
-							message.ResetTiming(TimingType::Br, pThis->m_eventTiming);
-							bAbort = FALSE;
-							pThis->_AddWatchEntry(EntryType::Receive, message.address.bitField.bySourceAddress, IDS_NETWORKLAYERWATCH_TIMEOUT_BR, Color::Red);
-							// 流量控制帧发送过慢，应避免。
-							break;
-						case TimingType::Cs:
-							TRACE(_T("\nNetworkLayer.Timeout.Cs\n"));
-							message.ResetTiming(TimingType::Cs, pThis->m_eventTiming);
-							bAbort = FALSE;
-							pThis->_AddWatchEntry(EntryType::Transmit, message.address.bitField.byTargetAddress, IDS_NETWORKLAYERWATCH_TIMEOUT_CS, Color::Red);
-							// 连续帧发送过慢，应避免。
-							break;
-						case TimingType::Cr:
-							TRACE(_T("\nNetworkLayer.Timeout.Cr\n"));
-							pApplicationLayer->Indication(Result::N_TIMEOUT_Cr);
-							pThis->_AddWatchEntry(EntryType::Receive, message.address.bitField.bySourceAddress, IDS_NETWORKLAYERWATCH_TIMEOUT_CR, Color::Red);
-							break;
-						}
-						if (bAbort)
-						{
-							message.AbortMessage();
-							message.ResetTiming(TimingType::Idle, pThis->m_eventTiming);
-						}
-					}
-					message.csectionProcess.Unlock();
+					pThis->m_eventTiming.ResetEvent();
+					ul.unlock();
+					continue;
 				}
-				++iter;
+				dwTimingTickSpan = GetTickCount() - pThis->m_messageBuffer.dwTimingStartTick;
+				bTimeout = pThis->m_anTimingParameters[static_cast<UINT>(pThis->m_messageBuffer.timingType)] < dwTimingTickSpan;
+				if (bTimeout)
+				{
+					bAbort = TRUE;
+					// 15765-2: 6.7.2
+					switch (pThis->m_messageBuffer.timingType)
+					{
+					case TimingType::As:
+						TRACE(_T("\nNetworkLayer.Timeout.As\n"));
+						pApplicationLayer->Confirm(Result::N_TIMEOUT_A);
+						pThis->_AddWatchEntry(EntryType::Transmit, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_AS, Color::Red);
+						break;
+					case TimingType::Ar:
+						TRACE(_T("\nNetworkLayer.Timeout.Ar\n"));
+						pApplicationLayer->Indication(Result::N_TIMEOUT_A);
+						pThis->_AddWatchEntry(EntryType::Receive, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_AR, Color::Red);
+						break;
+					case TimingType::Bs:
+						TRACE(_T("\nNetworkLayer.Timeout.Bs\n"));
+						pApplicationLayer->Confirm(Result::N_TIMEOUT_Bs);
+						pThis->_AddWatchEntry(EntryType::Transmit, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_BS, Color::Red);
+						break;
+					case TimingType::Br:
+						TRACE(_T("\nNetworkLayer.Timeout.Br\n"));
+						pThis->m_messageBuffer.ResetTiming(TimingType::Br, pThis->m_eventTiming);
+						bAbort = FALSE;
+						pThis->_AddWatchEntry(EntryType::Receive, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_BR, Color::Red);
+						// 流量控制帧发送过慢，应避免。
+						break;
+					case TimingType::Cs:
+						TRACE(_T("\nNetworkLayer.Timeout.Cs\n"));
+						pThis->m_messageBuffer.ResetTiming(TimingType::Cs, pThis->m_eventTiming);
+						bAbort = FALSE;
+						pThis->_AddWatchEntry(EntryType::Transmit, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_CS, Color::Red);
+						// 连续帧发送过慢，应避免。
+						break;
+					case TimingType::Cr:
+						TRACE(_T("\nNetworkLayer.Timeout.Cr\n"));
+						pApplicationLayer->Indication(Result::N_TIMEOUT_Cr);
+						pThis->_AddWatchEntry(EntryType::Receive, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_CR, Color::Red);
+						break;
+					}
+					if (bAbort)
+					{
+						pThis->m_messageBuffer.ClearMessage();
+					}
+				}
+				ul.unlock();
 			}
-			lockMessageList.Unlock();
 		}
 	}
 	pThis->m_pTimingThread = NULL;
@@ -1059,7 +796,7 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 	return 0;
 }
 
-void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT nID, UINT nDescriptionID, Color color)
+void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, Color color)
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -1067,7 +804,7 @@ void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT nID, UINT nDescript
 	}
 }
 
-void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT nID, const BYTEVector &vbyData, Color color)
+void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color)
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -1075,7 +812,7 @@ void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT nID, const BYTEVect
 	}
 }
 
-void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT nID, UINT nDescriptionID, int nData, Color color)
+void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color)
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -1116,16 +853,6 @@ void CNetworkLayer::_StopThread()
 			}
 		}
 		delete [] phThreadsExited;
-
-		CSingleLock lockMessageList(&m_csectionMessageList);
-		lockMessageList.Lock();
-		while (!m_lpMessage.empty())
-		{
-			Message *pMessage = m_lpMessage.back();
-			pMessage->csectionProcess.Lock();
-			delete pMessage;
-			m_lpMessage.pop_back();
-		}
-		lockMessageList.Unlock();
+		m_messageBuffer.ClearMessage();
 	}
 }

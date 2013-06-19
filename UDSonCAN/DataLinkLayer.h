@@ -11,30 +11,16 @@ class CNetworkLayer;
 class CDataLinkLayer
 {
 public:
-	union CANID
-	{
-		struct
-		{
-			unsigned SA: 8;
-			unsigned PS: 8;
-			unsigned PF: 8;
-			unsigned DP: 1;
-			unsigned R : 1;
-			unsigned P : 3;
-		} bitField;
-		UINT nID;
-	};
-
 	// 15765-2: 7.1
-	BOOL Request(UINT nID, const BYTEVector &vbyData, BOOL bReverseAddress = FALSE);
+	BOOL Request(INT32 nID, const BYTEVector &vbyData, BOOL bReverseAddress = FALSE);
 
 	// CPhysicalLayer.confirm
-	void Confirm(UINT nID, BYTE byAddressExtension = 0, BOOL bReverseAddress = FALSE) const;
+	void Confirm(INT32 nID, BYTE byAddressExtension = 0, BOOL bReverseAddress = FALSE) const;
 
 	// CPhysicalLayer.indication
-	void Indication(UINT nID, const BYTEVector &vbyData) const;
+	void Indication(INT32 nID, const BYTEVector &vbyData) const;
 
-	void SetNodeAddress(BYTE byNodeAddress);
+	void SetNodeAddress(INT32 nNodeAddress);
 
 	void SetPhysicalLayer(CPhysicalLayer &physicalLayer);
 	void SetNetworkLayer(CNetworkLayer &networkLayer);
@@ -47,7 +33,7 @@ protected:
 		DLCREQUIRED = 8
 	};
 
-	BYTE m_byNodeAddress;
+	INT32 m_nNodeAddress;
 
 	CPhysicalLayer *m_pPhysicalLayer;
 	CNetworkLayer *m_pNetworkLayer;

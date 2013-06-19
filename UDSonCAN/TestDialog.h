@@ -23,8 +23,7 @@ protected:
 	CDiagnosticControl &m_diagnosticControl;
 
 	void _MessagePrompt(BOOL bResult) const;
-	BYTE _GetNrequestSA() const;
-	BYTE _GetNrequestTA() const;
+	INT32 _GetNrequestID() const;
 
 	static UINT FakeCFThread(LPVOID lpParam);
 	CWinThread *m_pFakeCFThread;
@@ -40,8 +39,7 @@ public:
 	afx_msg void OnBnClickedButtonTestNrequest();
 protected:
 	CString m_csNrequestData;
-	CString m_csNrequestSA;
-	CString m_csNrequestTA;
+	CString m_csNrequestID;
 public:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedButtonTestFakesf();

@@ -82,7 +82,7 @@ typedef  struct  _VCI_BOARD_INFO{
 		CHAR	str_Serial_Num[20];
 		CHAR	str_hw_Type[40];
 		USHORT	Reserved[4];
-} VCI_BOARD_INFO,*PVCI_BOARD_INFO; 
+} VCI_BOARD_INFO, *PVCI_BOARD_INFO; 
 
 //2.定义CAN信息帧的数据类型。
 typedef  struct  _VCI_CAN_OBJ{
@@ -95,7 +95,7 @@ typedef  struct  _VCI_CAN_OBJ{
 	BYTE	DataLen;
 	BYTE	Data[8];
 	BYTE	Reserved[3];
-} VCI_CAN_OBJ,*PVCI_CAN_OBJ;
+} VCI_CAN_OBJ, *PVCI_CAN_OBJ;
 
 //3.定义CAN控制器状态的数据类型。
 typedef struct _VCI_CAN_STATUS{
@@ -108,14 +108,14 @@ typedef struct _VCI_CAN_STATUS{
 	UCHAR	regRECounter; 
 	UCHAR	regTECounter;
 	DWORD	Reserved;
-} VCI_CAN_STATUS,*PVCI_CAN_STATUS;
+} VCI_CAN_STATUS, *PVCI_CAN_STATUS;
 
 //4.定义错误信息的数据类型。
 typedef struct _VCI_ERR_INFO{
 		UINT	ErrCode;
 		BYTE	Passive_ErrData[3];
 		BYTE	ArLost_ErrData;
-} VCI_ERR_INFO,*PVCI_ERR_INFO;
+} VCI_ERR_INFO, *PVCI_ERR_INFO;
 
 //5.定义初始化CAN的数据类型
 typedef struct _VCI_INIT_CONFIG{
@@ -146,24 +146,24 @@ typedef struct _VCI_FILTER_RECORD{
 
 #define EXTERNC extern "C"
 
-EXTERNC DWORD __stdcall VCI_OpenDevice(DWORD DeviceType,DWORD DeviceInd,DWORD Reserved);
-EXTERNC DWORD __stdcall VCI_CloseDevice(DWORD DeviceType,DWORD DeviceInd);
+EXTERNC DWORD __stdcall VCI_OpenDevice(DWORD DeviceType, DWORD DeviceInd, DWORD Reserved);
+EXTERNC DWORD __stdcall VCI_CloseDevice(DWORD DeviceType, DWORD DeviceInd);
 EXTERNC DWORD __stdcall VCI_InitCAN(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_INIT_CONFIG pInitConfig);
 
-EXTERNC DWORD __stdcall VCI_ReadBoardInfo(DWORD DeviceType,DWORD DeviceInd,PVCI_BOARD_INFO pInfo);
-EXTERNC DWORD __stdcall VCI_ReadErrInfo(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd,PVCI_ERR_INFO pErrInfo);
-EXTERNC DWORD __stdcall VCI_ReadCANStatus(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd,PVCI_CAN_STATUS pCANStatus);
+EXTERNC DWORD __stdcall VCI_ReadBoardInfo(DWORD DeviceType, DWORD DeviceInd, PVCI_BOARD_INFO pInfo);
+EXTERNC DWORD __stdcall VCI_ReadErrInfo(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_ERR_INFO pErrInfo);
+EXTERNC DWORD __stdcall VCI_ReadCANStatus(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_CAN_STATUS pCANStatus);
 
-EXTERNC DWORD __stdcall VCI_GetReference(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd,DWORD RefType,PVOID pData);
-EXTERNC DWORD __stdcall VCI_SetReference(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd,DWORD RefType,PVOID pData);
+EXTERNC DWORD __stdcall VCI_GetReference(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, DWORD RefType, PVOID pData);
+EXTERNC DWORD __stdcall VCI_SetReference(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, DWORD RefType, PVOID pData);
 
-EXTERNC ULONG __stdcall VCI_GetReceiveNum(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd);
-EXTERNC DWORD __stdcall VCI_ClearBuffer(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd);
+EXTERNC ULONG __stdcall VCI_GetReceiveNum(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd);
+EXTERNC DWORD __stdcall VCI_ClearBuffer(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd);
 
-EXTERNC DWORD __stdcall VCI_StartCAN(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd);
-EXTERNC DWORD __stdcall VCI_ResetCAN(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd);
+EXTERNC DWORD __stdcall VCI_StartCAN(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd);
+EXTERNC DWORD __stdcall VCI_ResetCAN(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd);
 
-EXTERNC ULONG __stdcall VCI_Transmit(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd,PVCI_CAN_OBJ pSend,ULONG Len);
-EXTERNC ULONG __stdcall VCI_Receive(DWORD DeviceType,DWORD DeviceInd,DWORD CANInd,PVCI_CAN_OBJ pReceive,ULONG Len,INT WaitTime=-1);
+EXTERNC ULONG __stdcall VCI_Transmit(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_CAN_OBJ pSend, ULONG Len);
+EXTERNC ULONG __stdcall VCI_Receive(DWORD DeviceType, DWORD DeviceInd, DWORD CANInd, PVCI_CAN_OBJ pReceive, ULONG Len, INT WaitTime=-1);
 
 #endif

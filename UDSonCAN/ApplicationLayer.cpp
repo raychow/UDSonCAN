@@ -5,11 +5,9 @@
 #include "DiagnosticService.h"
 
 CApplicationLayer::CApplicationLayer(void)
-	: m_byTesterPhysicalAddress(0)
-	, m_byECUAddress(0)
-	, m_bECUFunctionalAddress(FALSE)
-	, m_bRemoteDiagnostic(FALSE)
-	, m_byRemoteDiagnosticAddress(0)
+	: m_nTesterPhysicalAddress(0)
+	, m_nECUPhysicalAddress(0)
+	, m_nECUFunctionalAddress(FALSE)
 	, m_nTimingS3Client(0)
 	, m_pDiagnosticService(DiagnosticService::CServiceManager::GetInstance())
 {
@@ -20,54 +18,34 @@ CApplicationLayer::~CApplicationLayer(void)
 {
 }
 
-BYTE CApplicationLayer::GetTesterPhysicalAddress() const
+INT32 CApplicationLayer::GetTesterPhysicalAddress() const
 {
-	return m_byTesterPhysicalAddress;
+	return m_nTesterPhysicalAddress;
 }
 
-void CApplicationLayer::SetTesterPhysicalAddress(BYTE byTesterPhysicalAddress)
+void CApplicationLayer::SetTesterPhysicalAddress(INT32 nTesterPhysicalAddress)
 {
-	m_byTesterPhysicalAddress = byTesterPhysicalAddress;
+	m_nTesterPhysicalAddress = nTesterPhysicalAddress;
 }
 
-BYTE CApplicationLayer::GetECUAddress() const
+INT32 CApplicationLayer::GetECUPhysicalAddress() const
 {
-	return m_byECUAddress;
+	return m_nECUPhysicalAddress;
 }
 
-void CApplicationLayer::SetECUAddress(BYTE byECUAddress)
+void CApplicationLayer::SetECUPhysicalAddress(INT32 nECUPhysicalAddress)
 {
-	m_byECUAddress = byECUAddress;
+	m_nECUPhysicalAddress = nECUPhysicalAddress;
 }
 
-BOOL CApplicationLayer::IsECUFunctionalAddress() const
+INT32 CApplicationLayer::GetECUFunctionalAddress() const
 {
-	return m_bECUFunctionalAddress;
+	return m_nECUPhysicalAddress;
 }
 
-void CApplicationLayer::SetECUFunctionalAddress(BOOL bECUFunctionalAddress)
+void CApplicationLayer::SetECUFunctionalAddress(INT32 nECUFunctionalAddress)
 {
-	m_bECUFunctionalAddress = bECUFunctionalAddress;
-}
-
-BOOL CApplicationLayer::IsRemoteDiagnostic() const
-{
-	return m_bRemoteDiagnostic;
-}
-
-void CApplicationLayer::SetRemoteDiagnostic(BOOL bRemoteDiagnostic)
-{
-	m_bRemoteDiagnostic = bRemoteDiagnostic;
-}
-
-BYTE CApplicationLayer::GetRemoteDiagnosticAddress() const
-{
-	return m_byRemoteDiagnosticAddress;
-}
-
-void CApplicationLayer::SetRemoteDiagnosticAddress(BYTE byRemoteDiagnosticAddress)
-{
-	byRemoteDiagnosticAddress = byRemoteDiagnosticAddress;
+	m_nECUFunctionalAddress = nECUFunctionalAddress;
 }
 
 UINT CApplicationLayer::GetP2CANClient() const
@@ -120,7 +98,7 @@ void CApplicationLayer::SetS3Client(UINT nS3Client)
 	m_nTimingS3Client = nS3Client;
 }
 
-void CApplicationLayer::FirstFrameIndication(CNetworkLayer::MessageType messageType, BYTE bySourceAddress, BYTE byTargetAddress, CNetworkLayer::TargetAddressType targetAddressType, BYTE addressExtension, UINT nLength)
+void CApplicationLayer::FirstFrameIndication(INT32 nID, UINT nLength)
 {
 
 }
@@ -130,12 +108,12 @@ void CApplicationLayer::Confirm(CNetworkLayer::Result result)
 
 }
 
-void CApplicationLayer::Confirm(CNetworkLayer::MessageType messageType, BYTE bySourceAddress, BYTE byTargetAddress, CNetworkLayer::TargetAddressType byTargetAddressType, BYTE addressExtension, CNetworkLayer::Result result)
+void CApplicationLayer::Confirm(INT32 nID, CNetworkLayer::Result result)
 {
 
 }
 
-void CApplicationLayer::Indication(CNetworkLayer::MessageType messageType, BYTE bySourceAddress, BYTE byTargetAddress, CNetworkLayer::TargetAddressType targetAddressType, BYTE byAddressExtension, const BYTEVector &vbyData, CNetworkLayer::Result result)
+void CApplicationLayer::Indication(INT32 nID, const BYTEVector &vbyData, CNetworkLayer::Result result)
 {
 
 }
@@ -156,14 +134,9 @@ void CApplicationLayer::Request(const BYTEVector &vbyData) const
 	m_pDiagnosticService->GetWatchEntriesByData(vbyData, acsEntries);
 	for (INT_PTR i = 0; i != acsEntries.GetSize(); ++i)
 	{
-		_AddWatchEntry(EntryType::Transmit, m_byECUAddress, acsEntries.GetAt(i));
+		_AddWatchEntry(EntryType::Transmit, m_nECUPhysicalAddress, acsEntries.GetAt(i));	// TODO: 显然此处有问题，要根据具体服务判断。
 	}
-	m_pNetworkLayer->Request(m_bRemoteDiagnostic ? CNetworkLayer::MessageType::RemoteDiagnostics : CNetworkLayer::MessageType::Diagnostics,
-		m_byTesterPhysicalAddress,
-		m_byECUAddress,
-		m_bECUFunctionalAddress ? CNetworkLayer::TargetAddressType::Functional : CNetworkLayer::TargetAddressType::Physical,
-		m_byRemoteDiagnosticAddress,
-		vbyData);
+	m_pNetworkLayer->Request(m_nECUPhysicalAddress, vbyData);
 }
 
 void CApplicationLayer::SetNetworkLayer(CNetworkLayer &networkLayer)
@@ -176,7 +149,7 @@ void CApplicationLayer::SetDiagnosticControl(CDiagnosticControl &diagnosticContr
 	m_pDiagnosticControl = &diagnosticControl;
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, LPCTSTR lpszDescription, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -184,7 +157,7 @@ void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, LPCTSTR lp
 	}
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, UINT nDescriptionID, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -192,7 +165,7 @@ void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, UINT nDesc
 	}
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, const BYTEVector &vbyData, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -200,7 +173,7 @@ void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, const BYTE
 	}
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT nID, UINT nDescriptionID, int nData, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{

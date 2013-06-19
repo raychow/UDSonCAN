@@ -165,7 +165,7 @@ CTIDCWatchWnd::~CTIDCWatchWnd()
 }
 
 
-void CTIDCWatchWnd::AddEntry(DWORD dwTick, EntryType entryType, UINT nID, LPCTSTR lpszDescription, Color color)
+void CTIDCWatchWnd::AddEntry(DWORD dwTick, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color)
 {
 	Entry *entry = new Entry();
 	entry->dwTick = dwTick;
@@ -249,7 +249,7 @@ LRESULT CTIDCWatchWnd::OnWatchAddEntry(WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		m_wndWatchList.SetItemText(nItem, 1, csTemp);
-		csTemp.Format(_T("%X"), entry->nID);
+		csTemp.Format(_T("%04X"), entry->nID);
 		m_wndWatchList.SetItemText(nItem, 2, csTemp);
 		m_wndWatchList.SetItemText(nItem, 3, entry->csDescription);
 		m_wndWatchList.SetItemData(nItem, static_cast<DWORD_PTR>(entry->color));

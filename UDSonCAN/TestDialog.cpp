@@ -18,13 +18,11 @@ CTestDialog::CTestDialog(CDiagnosticControl &diagnosticControl, CWnd* pParent /*
 	: CDialogEx(CTestDialog::IDD, pParent)
 	, m_diagnosticControl(diagnosticControl)
 	, m_csNrequestData(_T(""))
-	, m_csNrequestSA(_T(""))
-	, m_csNrequestTA(_T(""))
+	, m_csNrequestID(_T(""))
 	, m_csFakeSFID(_T(""))
 	, m_csFakeSFRequestData(_T(""))
 	, m_pFakeCFThread(NULL)
 {
-	m_diagnosticControl.GetDataLinkLayer().SetNodeAddress(0x11);
 }
 
 CTestDialog::~CTestDialog()
@@ -35,8 +33,7 @@ void CTestDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT_TEST_NREQUESTDATA, m_csNrequestData);
-	DDX_Text(pDX, IDC_EDIT_TEST_NREQUESTSA, m_csNrequestSA);
-	DDX_Text(pDX, IDC_EDIT_TEST_NREQUESTTA, m_csNrequestTA);
+	DDX_Text(pDX, IDC_EDIT_TEST_NREQUESTID, m_csNrequestID);
 	DDX_Text(pDX, IDC_EDIT_TEST_FAKESFID, m_csFakeSFID);
 	DDX_Text(pDX, IDC_EDIT_TEST_FAKESFREQUESTDATA, m_csFakeSFRequestData);
 }
@@ -116,29 +113,21 @@ void CTestDialog::OnBnClickedButtonTestNrequest()
 		vbyData.push_back(nData);
 	}
 
-	m_diagnosticControl.GetNetworkLayer().Request(CNetworkLayer::MessageType::Diagnostics, _GetNrequestSA(), _GetNrequestTA(), CNetworkLayer::TargetAddressType::Physical, 0x33, vbyData);
+	m_diagnosticControl.GetNetworkLayer().Request(_GetNrequestID(), vbyData);
 }
 
-BYTE CTestDialog::_GetNrequestSA() const
+INT32 CTestDialog::_GetNrequestID() const
 {
-	UINT nNrequestSA;
-	_stscanf_s(m_csNrequestSA, _T("%2X"), &nNrequestSA);
-	return nNrequestSA;
-}
-
-BYTE CTestDialog::_GetNrequestTA() const
-{
-	UINT nNrequestTA;
-	_stscanf_s(m_csNrequestTA, _T("%2X"), &nNrequestTA);
-	return nNrequestTA;
+	UINT nNrequestID;
+	_stscanf_s(m_csNrequestID, _T("%4X"), &nNrequestID);
+	return nNrequestID;
 }
 
 BOOL CTestDialog::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
-	m_csNrequestSA = _T("11");
-	m_csNrequestTA = _T("22");
-	m_csFakeSFID = _T("18DA1122");
+	m_csNrequestID = _T("0760");
+	m_csFakeSFID = _T("0780");
 	UpdateData(FALSE);
 	return TRUE;  // return TRUE unless you set the focus to a control
 }
@@ -150,7 +139,7 @@ void CTestDialog::OnBnClickedButtonTestFakesf()
 	CSingleLock lockReceiveData(&m_diagnosticControl.GetPhysicalLayer().m_csectionReceiveData);
 	lockReceiveData.Lock();
 	m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;
-	UINT nID;
+	INT32 nID;
 	_stscanf_s(m_csFakeSFID, _T("%X"), &nID);
 
 	CString csDataString(m_csFakeSFRequestData);
@@ -201,7 +190,7 @@ void CTestDialog::OnBnClickedButtonTestFakeff()
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[7] = 0x66;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.DataLen = 8;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.ExternFlag = 0;
-	m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = 0x18DA1122;
+	m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = m_diagnosticControl.GetApplicationLayer().GetTesterPhysicalAddress();
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.RemoteFlag = 0;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.SendType = 0;
 	m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;
@@ -224,7 +213,7 @@ UINT CTestDialog::FakeCFThread(LPVOID lpParam)
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[7] = 0xDD;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.DataLen = 8;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ExternFlag = 0;
-	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = 0x18DA1122;
+	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = pThis->m_diagnosticControl.GetApplicationLayer().GetTesterPhysicalAddress();
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.RemoteFlag = 0;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.SendType = 0;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;
@@ -241,7 +230,7 @@ UINT CTestDialog::FakeCFThread(LPVOID lpParam)
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[7] = 0xDD;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.DataLen = 8;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ExternFlag = 0;
-	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = 0x18DA1122;
+	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = pThis->m_diagnosticControl.GetApplicationLayer().GetTesterPhysicalAddress();
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.RemoteFlag = 0;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.SendType = 0;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;
@@ -258,7 +247,7 @@ UINT CTestDialog::FakeCFThread(LPVOID lpParam)
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[7] = 0xDD;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.DataLen = 8;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ExternFlag = 0;
-	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = 0x18DA1122;
+	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = pThis->m_diagnosticControl.GetApplicationLayer().GetTesterPhysicalAddress();
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.RemoteFlag = 0;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_canObj.SendType = 0;
 	pThis->m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;
@@ -282,7 +271,7 @@ void CTestDialog::OnBnClickedButtonTestFakefc()
 	CSingleLock lockReceiveData(&m_diagnosticControl.GetPhysicalLayer().m_csectionReceiveData);
 	lockReceiveData.Lock();
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[0] = 0x30;
-	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[1] = 0x00;
+	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[1] = 0x02;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[2] = 0x7F;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[3] = 0x00;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[4] = 0x00;
@@ -291,7 +280,7 @@ void CTestDialog::OnBnClickedButtonTestFakefc()
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.Data[7] = 0x00;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.DataLen = 8;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.ExternFlag = 0;
-	m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = 0x18DA1122;
+	m_diagnosticControl.GetPhysicalLayer().m_canObj.ID = m_diagnosticControl.GetApplicationLayer().GetTesterPhysicalAddress();
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.RemoteFlag = 0;
 	m_diagnosticControl.GetPhysicalLayer().m_canObj.SendType = 0;
 	m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;

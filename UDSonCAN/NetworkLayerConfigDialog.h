@@ -16,7 +16,6 @@ public:
 	enum { IDD = IDD_NETWORKLAYERCONFIG };
 
 protected:
-	int m_nWorkMode;
 	BYTE m_bySeparationTimeMin;
 	UINT m_nBlockSize;
 	BYTE m_nWaitFrameTransimissionMax;
