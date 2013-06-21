@@ -1,13 +1,10 @@
 #include "stdafx.h"
 #include "DataLinkLayer.h"
 
-#include "NetworkLayer.h"
-#include "PhysicalLayer.h"
+using Diagnostic::BYTEVector;
 
 CDataLinkLayer::CDataLinkLayer(void)
 	: m_nNodeAddress(0)
-	, m_pPhysicalLayer(NULL)
-	, m_pNetworkLayer(NULL)
 	, m_nBufferedID(0)
 {
 }
@@ -16,52 +13,53 @@ CDataLinkLayer::~CDataLinkLayer(void)
 {
 }
 
-BOOL CDataLinkLayer::Request(INT32 nID, const BYTEVector &vbyData, BOOL bReverseAddress)
+void CDataLinkLayer::Request(UINT32 nID, const Diagnostic::BYTEVector &vbyData)
 {
-	ASSERT(m_pPhysicalLayer);
 	TRACE(_T("CDataLinkLayer::Request: %X\n"), nID);
 
 	// 15765-2: 7.4.1
 	BYTEVector vbyDataTransmit = vbyData;
 	vbyDataTransmit.resize(DLCREQUIRED, 0);
-	return m_pPhysicalLayer->Transmit(nID, vbyDataTransmit, CPhysicalLayer::Normal, NULL, NULL, bReverseAddress);	// Confirm
+	m_signalTransmit(nID, vbyDataTransmit, Diagnostic::PhysicalLayerSendType::Normal, NULL, NULL);
 }
 
-void CDataLinkLayer::Confirm(INT32 nID, BYTE byAddressExtension, BOOL bReverseAddress) const
+void CDataLinkLayer::Confirm() const
 {
-	ASSERT(m_pNetworkLayer);
-	TRACE(_T("CDataLinkLayer::Confirm\n"), nID);
+	TRACE(_T("CDataLinkLayer::Confirm"));
 
-	m_pNetworkLayer->Confirm(nID);
+	m_signalConfirm();
 }
 
-void CDataLinkLayer::Indication(INT32 nID, const BYTEVector &vbyData) const
+void CDataLinkLayer::Indication(UINT32 nID, const Diagnostic::BYTEVector &vbyData) const
 {
-	ASSERT(m_pNetworkLayer);
-
 	if (nID != m_nNodeAddress || vbyData.size() != DLCREQUIRED)
 	{
-		TRACE(_T("CDataLinkLayer::Indication: Discard received frame, the PS is 0x%X.\n"), nID);
+		TRACE(_T("CDataLinkLayer::Indication: Discard received frame, the ID is 0x%X.\n"), nID);
 		return;
 	}
 
-	TRACE(_T("CDataLinkLayer::Indication: 0x%X\n"), nID);
+	TRACE(_T("CDataLinkLayer::Indication.\n"), nID);
 
-	m_pNetworkLayer->Indication(nID, vbyData);
+	m_signalIndication(nID, vbyData);
 	return;
 }
 
-void CDataLinkLayer::SetNodeAddress(INT32 nNodeAddress)
+void CDataLinkLayer::SetNodeAddress(UINT32 nNodeAddress)
 {
 	m_nNodeAddress = nNodeAddress;
 }
 
-void CDataLinkLayer::SetPhysicalLayer(CPhysicalLayer &physicalLayer)
+boost::signals2::connection CDataLinkLayer::ConnectIndication(const Diagnostic::IndicationSignal::slot_type &subscriber)
 {
-	m_pPhysicalLayer = &physicalLayer;
+	return m_signalIndication.connect(subscriber);
 }
 
-void CDataLinkLayer::SetNetworkLayer(CNetworkLayer &networkLayer)
+boost::signals2::connection CDataLinkLayer::ConnectConfirm(const Diagnostic::ConfirmSignal::slot_type &subscriber)
 {
-	m_pNetworkLayer = &networkLayer;
+	return m_signalConfirm.connect(subscriber);
+}
+
+boost::signals2::connection CDataLinkLayer::ConnectTransmit(const Diagnostic::PhysicalLayerTrasnmitSignal::slot_type &subscriber)
+{
+	return m_signalTransmit.connect(subscriber);
 }

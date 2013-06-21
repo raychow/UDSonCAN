@@ -90,6 +90,9 @@
     <ClInclude Include="DiagnosticResponse.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DiagnosticType.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -4,14 +4,11 @@
 #include <list>
 #include <vector>
 
+#include "DiagnosticType.h"
 #include "WatchWnd.h"
 
 //#define NETWORKLAYER_NOAE
 
-typedef std::vector<BYTE> BYTEVector;
-
-class CApplicationLayer;
-class CDataLinkLayer;
 class CDiagnosticControl;
 
 class CNetworkLayer
@@ -19,34 +16,6 @@ class CNetworkLayer
 	typedef CTIDCWatchWnd::EntryType EntryType;
 	typedef CWatchWnd::Color Color;
 public:
-	//enum struct MessageType : BYTE	// 15765-2: 5.3.1
-	//{
-	//	Unknown = 2,
-	//	Diagnostics = 0,
-	//	RemoteDiagnostics,
-	//};
-
-	//enum struct TargetAddressType : BYTE
-	//{
-	//	Unknown = 2,
-	//	Physical = 0,
-	//	Functional,
-	//};
-
-	enum struct Result : BYTE	// 网络层请求结果。
-	{
-		N_OK = 0,
-		N_TIMEOUT_A,
-		N_TIMEOUT_Bs,
-		N_TIMEOUT_Cr,
-		N_WRONG_SN,
-		N_INVALID_FS,
-		N_UNEXP_PDU,
-		N_WFT_OVRN,
-		N_BUFFER_OVFLW,
-		N_ERROR
-	};
-
 	enum struct PCIType : BYTE	// 单帧 / 首帧 / 连续帧 / 流控制帧。
 	{
 		Unknown = 4,
@@ -102,8 +71,6 @@ public:
 	UINT GetCr() const;
 	void SetCr(UINT nCr);
 
-	// Status GetStatus() const;		// TODO: 需要修改。
-
 	BYTE GetSeparationTimeMin() const;
 	void SetSeparationTimeMin(BYTE bySeparationTimeMin);
 
@@ -114,17 +81,20 @@ public:
 	void SetWaitFrameTransimissionMax(UINT nWaitFrameTransimissionMax);
 
 	// 15765-2 5.2
-	BOOL Request(INT32 nID, const BYTEVector &vbyData);
+	void Request(UINT32 nID, const Diagnostic::BYTEVector &vbyData);
 
-	BOOL RequestTesterPresent(INT32 nID);
+	void RequestTesterPresent(UINT32 nID);
 	// L_Data.confirm
-	void Confirm(INT32 nID);
+	void Confirm();
 
 	// L_Data.indication
-	void Indication(INT32 nID, const BYTEVector &vbyData);
+	void Indication(UINT32 nID, const Diagnostic::BYTEVector &vbyData);
 
-	void SetApplicationLayer(CApplicationLayer &applicationLayer);
-	void SetDataLinkLayer(CDataLinkLayer &dataLinkLayer);
+	boost::signals2::connection ConnectIndication(const Diagnostic::IndicationASignal::slot_type &subscriber);
+	boost::signals2::connection ConnectFirstFrameIndication(const Diagnostic::IndicationAFSignal::slot_type &subscriber);
+	boost::signals2::connection ConnectConfirm(const Diagnostic::ConfirmASignal::slot_type &subscriber);
+	boost::signals2::connection ConnectRequest(const Diagnostic::RequestSignal::slot_type &subscriber);
+
 	void SetDiagnosticControl(CDiagnosticControl &diagnosticControl);
 protected:
 	enum : UINT
@@ -144,7 +114,6 @@ protected:
 		NormalFixedAddressingFunctional	= 219
 	};
 
-
 	struct MessageBuffer							// 消息缓存，已退化为半双工。
 													// 是具有此功能的设计，目前取消了多 ECU 支持，只对单一 ECU 操作，但仍用此结构。
 	{
@@ -155,9 +124,9 @@ protected:
 		// CCriticalSection csectionProcess;		// 消息处理临界对象。
 		std::recursive_mutex rmutexMessageBuffer;	// 访问互斥量。
 		Status status;
-		INT32 nID;									// ID
-		BYTEVector vbyData;							// 将要发送，或是正在接收的数据。
-		BYTEVector::size_type stLocation;			// 将要发送或接收的位置。
+		UINT32 nID;									// ID
+		Diagnostic::BYTEVector vbyData;							// 将要发送，或是正在接收的数据。
+		Diagnostic::BYTEVector::size_type stLocation;			// 将要发送或接收的位置。
 		PCIType pciType;							// 发送 / 验证 / 期望收到的 PCI 类型：SF / FF / CF / FC。
 		BYTE bySeparationTimeMin;					// 连续帧发送的最小等待时间。
 		UINT nRemainderFrameCount;					// 本次尚要发送的帧数，或是尚要接收的帧数；
@@ -178,16 +147,19 @@ protected:
 
 	UINT m_anTimingParameters[6];				// 定时参数 As, Ar, Bs, Br, Cs, Cr
 
-	CApplicationLayer *m_pApplicationLayer;
-	CDataLinkLayer *m_pDataLinkLayer;
+	Diagnostic::IndicationASignal m_signalIndication;
+	Diagnostic::IndicationAFSignal m_signalFirstFrameIndication;
+	Diagnostic::ConfirmASignal m_signalConfirm;
+	Diagnostic::RequestSignal m_signalRequest;
+
 	CDiagnosticControl *m_pDiagnosticControl;
 
 	CCriticalSection m_csectionProcess;			// 收发处理临界对象。
 
 	CWinThread *m_pTimingThread;				// 定时线程的指针，此线程应自动删除。
 
-	BOOL _FillBuffer(Status status, INT32 nID, const BYTEVector &vbyData);
-	BOOL _Request();
+	BOOL _FillBuffer(Status status, UINT32 nID, const Diagnostic::BYTEVector &vbyData);
+	void _Request();
 
 	static UINT _TimingThread(LPVOID lpParam);
 	CEvent m_eventTiming;
@@ -195,9 +167,9 @@ protected:
 	CEvent m_eventStopThread;					// 指示正停止线程。
 	CEvent m_eventTimingThreadExited;			// 指示 Timing 线程已经退出。
 
-	void _AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, Color color = Color::Black);
-	void _AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color = Color::Black);
-	void _AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black);
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, Color color = Color::Black);
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, const Diagnostic::BYTEVector &vbyData, Color color = Color::Black);
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black);
 
 	void _StartThread();
 	void _StopThread();

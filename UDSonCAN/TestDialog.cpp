@@ -116,7 +116,7 @@ void CTestDialog::OnBnClickedButtonTestNrequest()
 	m_diagnosticControl.GetNetworkLayer().Request(_GetNrequestID(), vbyData);
 }
 
-INT32 CTestDialog::_GetNrequestID() const
+UINT32 CTestDialog::_GetNrequestID() const
 {
 	UINT nNrequestID;
 	_stscanf_s(m_csNrequestID, _T("%4X"), &nNrequestID);
@@ -139,7 +139,7 @@ void CTestDialog::OnBnClickedButtonTestFakesf()
 	CSingleLock lockReceiveData(&m_diagnosticControl.GetPhysicalLayer().m_csectionReceiveData);
 	lockReceiveData.Lock();
 	m_diagnosticControl.GetPhysicalLayer().m_lReceivedLength = 1;
-	INT32 nID;
+	UINT32 nID;
 	_stscanf_s(m_csFakeSFID, _T("%X"), &nID);
 
 	CString csDataString(m_csFakeSFRequestData);

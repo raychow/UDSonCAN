@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "DiagnosticControl.h"
 
+#include <boost/bind.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -10,24 +11,29 @@
 #include "NetworkLayer.h"
 #include "ApplicationLayer.h"
 
+using Diagnostic::BYTEVector;
+
 CDiagnosticControl::CDiagnosticControl(void)
+	: m_upPhysicalLayer(new CPhysicalLayer())
+	, m_upDataLinkLayer(new CDataLinkLayer())
+	, m_upNetworkLayer(new CNetworkLayer())
+	, m_upApplicationLayer(new CApplicationLayer())
 {
-	m_pPhysicalLayer	= new CPhysicalLayer();
-	m_pDataLinkLayer	= new CDataLinkLayer();
-	m_pNetworkLayer		= new CNetworkLayer();
-	m_pApplicationLayer	= new CApplicationLayer();
+	m_connectionDataLinkLayerConfirm = m_upPhysicalLayer->ConnectConfirm(boost::bind(&CDataLinkLayer::Confirm, m_upDataLinkLayer.get()));
+	m_connectionNetworkLayerConfirm = m_upDataLinkLayer->ConnectConfirm(boost::bind(&CNetworkLayer::Confirm, m_upNetworkLayer.get()));
+	m_connectionApplicationLayerConfirm = m_upNetworkLayer->ConnectConfirm(boost::bind(&CApplicationLayer::Confirm, m_upApplicationLayer.get(), ::_1));
+	
+	m_connectionDataLinkLayerIndication = m_upPhysicalLayer->ConnectIndication(boost::bind(&CDataLinkLayer::Indication, m_upDataLinkLayer.get(), ::_1, ::_2));
+	m_connectionNetworkLayerIndication = m_upDataLinkLayer->ConnectIndication(boost::bind(&CNetworkLayer::Indication, m_upNetworkLayer.get(), ::_1, ::_2));
+	m_connectionApplicationLayerIndication = m_upNetworkLayer->ConnectIndication(boost::bind(&CApplicationLayer::Indication, m_upApplicationLayer.get(), ::_1, ::_2, ::_3));
+	m_connectionApplicationLayerFirstFrameIndication = m_upNetworkLayer->ConnectFirstFrameIndication(boost::bind(&CApplicationLayer::FirstFrameIndication, m_upApplicationLayer.get(), ::_1, ::_2));
+	
+	m_connectionPhysicalLayerTrasnmit = m_upDataLinkLayer->ConnectTransmit(boost::bind(&CPhysicalLayer::Transmit, m_upPhysicalLayer.get(), ::_1, ::_2, ::_3, ::_4, ::_5));
+	m_connectionDataLinkLayerRequest = m_upNetworkLayer->ConnectRequest(boost::bind(&CDataLinkLayer::Request, m_upDataLinkLayer.get(), ::_1, ::_2));
+	m_connectionNetworkLayerRequest = m_upApplicationLayer->ConnectRequest(boost::bind(&CNetworkLayer::Request, m_upNetworkLayer.get(), ::_1, ::_2));
 
-	m_pPhysicalLayer->SetDataLinkLayer(*m_pDataLinkLayer);
-	m_pDataLinkLayer->SetNetworkLayer(*m_pNetworkLayer);
-	m_pNetworkLayer->SetApplicationLayer(*m_pApplicationLayer);
-
-	m_pDataLinkLayer->SetPhysicalLayer(*m_pPhysicalLayer);
-	m_pNetworkLayer->SetDataLinkLayer(*m_pDataLinkLayer);
-	m_pApplicationLayer->SetNetworkLayer(*m_pNetworkLayer);
-
-	m_pPhysicalLayer->SetDiagnosticControl(*this);
-	m_pNetworkLayer->SetDiagnosticControl(*this);
-	m_pApplicationLayer->SetDiagnosticControl(*this);
+	m_upNetworkLayer->SetDiagnosticControl(*this);
+	m_upApplicationLayer->SetDiagnosticControl(*this);
 
 	TCHAR pcFilePath[MAX_PATH];
 	GetModuleFileName(NULL, pcFilePath, MAX_PATH);
@@ -43,32 +49,34 @@ CDiagnosticControl::CDiagnosticControl(void)
 
 CDiagnosticControl::~CDiagnosticControl(void)
 {
-	m_pPhysicalLayer->CloseDevice();	// 物理层必须在网络层之前关闭，否则可能会在网络层析构后通知网络层。
-
-	delete m_pPhysicalLayer;
-	delete m_pDataLinkLayer;
-	delete m_pNetworkLayer;
-	delete m_pApplicationLayer;
+	m_connectionDataLinkLayerConfirm.disconnect();
+	m_connectionDataLinkLayerIndication.disconnect();
+	m_connectionNetworkLayerConfirm.disconnect();
+	m_connectionNetworkLayerIndication.disconnect();
+	m_connectionApplicationLayerConfirm.disconnect();
+	m_connectionApplicationLayerIndication.disconnect();
+	m_connectionApplicationLayerFirstFrameIndication.disconnect();
+	//m_upPhysicalLayer->CloseDevice();	// 物理层必须在网络层之前关闭，否则可能会在网络层析构后通知网络层。
 }
 
 CPhysicalLayer &CDiagnosticControl::GetPhysicalLayer()
 {
-	return *m_pPhysicalLayer;
+	return *m_upPhysicalLayer;
 }
 
 CDataLinkLayer &CDiagnosticControl::GetDataLinkLayer()
 {
-	return *m_pDataLinkLayer;
+	return *m_upDataLinkLayer;
 }
 
 CNetworkLayer &CDiagnosticControl::GetNetworkLayer()
 {
-	return *m_pNetworkLayer;
+	return *m_upNetworkLayer;
 }
 
 CApplicationLayer &CDiagnosticControl::GetApplicationLayer()
 {
-	return *m_pApplicationLayer;
+	return *m_upApplicationLayer;
 }
 
 void CDiagnosticControl::SetApplicationLayerWatchWnd(CTIDCWatchWnd &applicationLayerWatchWnd)
@@ -101,37 +109,37 @@ void CDiagnosticControl::LoadConfig()
 	pptChild = &ptRoot.get_child("UDSonCAN", ptEmpty);
 
 	pptNode = &pptChild->get_child("CPhysicalLayer", ptEmpty);
-	m_pPhysicalLayer->SetDeviceType(pptNode->get<DWORD>("DeviceType", 3));
-	m_pPhysicalLayer->SetDeviceIndex(pptNode->get<DWORD>("DeviceIndex", 0));
-	m_pPhysicalLayer->SetCANIndex(pptNode->get<DWORD>("CANIndex", 0));
-	m_pPhysicalLayer->SetAccMask(pptNode->get<DWORD>("AccMask", 0));
-	m_pPhysicalLayer->SetAccCode(pptNode->get<DWORD>("AccCode", 0));
-	m_pPhysicalLayer->SetBaudRateType(pptNode->get<UINT>("BaudRateType", 0));
-	m_pPhysicalLayer->SetTiming0(pptNode->get<UCHAR>("Timing0", 0));
-	m_pPhysicalLayer->SetTiming1(pptNode->get<UCHAR>("Timing1", 0));
-	m_pPhysicalLayer->SetFilter(pptNode->get<UCHAR>("Filter", 0));
-	m_pPhysicalLayer->SetMode(pptNode->get<UCHAR>("Mode", 0));
+	m_upPhysicalLayer->SetDeviceType(pptNode->get<DWORD>("DeviceType", 3));
+	m_upPhysicalLayer->SetDeviceIndex(pptNode->get<DWORD>("DeviceIndex", 0));
+	m_upPhysicalLayer->SetCANIndex(pptNode->get<DWORD>("CANIndex", 0));
+	m_upPhysicalLayer->SetAccMask(pptNode->get<DWORD>("AccMask", 0));
+	m_upPhysicalLayer->SetAccCode(pptNode->get<DWORD>("AccCode", 0));
+	m_upPhysicalLayer->SetBaudRateType(pptNode->get<UINT>("BaudRateType", 0));
+	m_upPhysicalLayer->SetTiming0(pptNode->get<UCHAR>("Timing0", 0));
+	m_upPhysicalLayer->SetTiming1(pptNode->get<UCHAR>("Timing1", 0));
+	m_upPhysicalLayer->SetFilter(pptNode->get<UCHAR>("Filter", 0));
+	m_upPhysicalLayer->SetMode(pptNode->get<UCHAR>("Mode", 0));
 
 	pptNode = &pptChild->get_child("CNetworkLayer", ptEmpty);
-	m_pNetworkLayer->SetSeparationTimeMin(pptNode->get<BYTE>("SeparationTimeMin", 0));
-	m_pNetworkLayer->SetBlockSize(pptNode->get<BYTE>("BlockSize", 0xFF));
-	m_pNetworkLayer->SetWaitFrameTransimissionMax(pptNode->get<UINT>("WaitFrameTransimissionMax", 0));
-	m_pNetworkLayer->SetAs(pptNode->get<UINT>("As", 1000));
-	m_pNetworkLayer->SetAr(pptNode->get<UINT>("Ar", 1000));
-	m_pNetworkLayer->SetBs(pptNode->get<UINT>("Bs", 1000));
-	m_pNetworkLayer->SetBr(pptNode->get<UINT>("Br", 400));
-	m_pNetworkLayer->SetCs(pptNode->get<UINT>("Cs", 400));
-	m_pNetworkLayer->SetCr(pptNode->get<UINT>("Cr", 1000));
+	m_upNetworkLayer->SetSeparationTimeMin(pptNode->get<BYTE>("SeparationTimeMin", 0));
+	m_upNetworkLayer->SetBlockSize(pptNode->get<BYTE>("BlockSize", 0xFF));
+	m_upNetworkLayer->SetWaitFrameTransimissionMax(pptNode->get<UINT>("WaitFrameTransimissionMax", 0));
+	m_upNetworkLayer->SetAs(pptNode->get<UINT>("As", 1000));
+	m_upNetworkLayer->SetAr(pptNode->get<UINT>("Ar", 1000));
+	m_upNetworkLayer->SetBs(pptNode->get<UINT>("Bs", 1000));
+	m_upNetworkLayer->SetBr(pptNode->get<UINT>("Br", 400));
+	m_upNetworkLayer->SetCs(pptNode->get<UINT>("Cs", 400));
+	m_upNetworkLayer->SetCr(pptNode->get<UINT>("Cr", 1000));
 
 	pptNode = &pptChild->get_child("CApplicationLayer", ptEmpty);
-	m_pApplicationLayer->SetTesterPhysicalAddress(pptNode->get<INT32>("TesterPhysicalAddress", 0x0780));
-	m_pApplicationLayer->SetECUPhysicalAddress(pptNode->get<INT32>("ECUPhysicalAddress", 0x0760));
-	m_pApplicationLayer->SetECUFunctionalAddress(pptNode->get<INT32>("ECUFunctionalAddress", 0));
-	m_pApplicationLayer->SetP2CANClient(pptNode->get<UINT>("P2CANClient", 1100));
-	m_pApplicationLayer->SetP2SCANClient(pptNode->get<UINT>("P2SCANClient", 6000));
-	m_pApplicationLayer->SetP3CANClientPhys(pptNode->get<UINT>("P3CANClientPhys", 50));
-	m_pApplicationLayer->SetP3CANClientFunc(pptNode->get<UINT>("P3CANClientFunc", 50));
-	m_pApplicationLayer->SetS3Client(pptNode->get<UINT>("S3Client", 2000));
+	m_upApplicationLayer->SetTesterPhysicalAddress(pptNode->get<UINT32>("TesterPhysicalAddress", 0x0780));
+	m_upApplicationLayer->SetECUPhysicalAddress(pptNode->get<UINT32>("ECUPhysicalAddress", 0x0760));
+	m_upApplicationLayer->SetECUFunctionalAddress(pptNode->get<UINT32>("ECUFunctionalAddress", 0));
+	m_upApplicationLayer->SetP2CANClient(pptNode->get<UINT>("P2CANClient", 1100));
+	m_upApplicationLayer->SetP2SCANClient(pptNode->get<UINT>("P2SCANClient", 6000));
+	m_upApplicationLayer->SetP3CANClientPhys(pptNode->get<UINT>("P3CANClientPhys", 50));
+	m_upApplicationLayer->SetP3CANClientFunc(pptNode->get<UINT>("P3CANClientFunc", 50));
+	m_upApplicationLayer->SetS3Client(pptNode->get<UINT>("S3Client", 2000));
 }
 
 void CDiagnosticControl::SaveConfig()
@@ -144,37 +152,37 @@ void CDiagnosticControl::SaveConfig()
 	ptree *pptNode;
 
 	pptNode = &ptChild.add("CPhysicalLayer", "");
-	pptNode->put("DeviceType", m_pPhysicalLayer->GetDeviceType());
-	pptNode->put("DeviceIndex", m_pPhysicalLayer->GetDeviceIndex());
-	pptNode->put("CANIndex", m_pPhysicalLayer->GetCANIndex());
-	pptNode->put("AccMask", m_pPhysicalLayer->GetAccMask());
-	pptNode->put("AccCode", m_pPhysicalLayer->GetAccCode());
-	pptNode->put("BaudRateType", m_pPhysicalLayer->GetBaudRateType());
-	pptNode->put("Timing0", m_pPhysicalLayer->GetTiming0());
-	pptNode->put("Timing1", m_pPhysicalLayer->GetTiming1());
-	pptNode->put("Filter", m_pPhysicalLayer->GetFilter());
-	pptNode->put("Mode", m_pPhysicalLayer->GetMode());
+	pptNode->put("DeviceType", m_upPhysicalLayer->GetDeviceType());
+	pptNode->put("DeviceIndex", m_upPhysicalLayer->GetDeviceIndex());
+	pptNode->put("CANIndex", m_upPhysicalLayer->GetCANIndex());
+	pptNode->put("AccMask", m_upPhysicalLayer->GetAccMask());
+	pptNode->put("AccCode", m_upPhysicalLayer->GetAccCode());
+	pptNode->put("BaudRateType", m_upPhysicalLayer->GetBaudRateType());
+	pptNode->put("Timing0", m_upPhysicalLayer->GetTiming0());
+	pptNode->put("Timing1", m_upPhysicalLayer->GetTiming1());
+	pptNode->put("Filter", m_upPhysicalLayer->GetFilter());
+	pptNode->put("Mode", m_upPhysicalLayer->GetMode());
 
 	pptNode = &ptChild.add("CNetworkLayer", "");
-	pptNode->put("SeparationTimeMin", m_pNetworkLayer->GetSeparationTimeMin());
-	pptNode->put("BlockSize", m_pNetworkLayer->GetBlockSize());
-	pptNode->put("WaitFrameTransimissionMax", m_pNetworkLayer->GetWaitFrameTransimissionMax());
-	pptNode->put("As", m_pNetworkLayer->GetAs());
-	pptNode->put("Ar", m_pNetworkLayer->GetAr());
-	pptNode->put("Bs", m_pNetworkLayer->GetBs());
-	pptNode->put("Br", m_pNetworkLayer->GetBr());
-	pptNode->put("Cs", m_pNetworkLayer->GetCs());
-	pptNode->put("Cr", m_pNetworkLayer->GetCr());
+	pptNode->put("SeparationTimeMin", m_upNetworkLayer->GetSeparationTimeMin());
+	pptNode->put("BlockSize", m_upNetworkLayer->GetBlockSize());
+	pptNode->put("WaitFrameTransimissionMax", m_upNetworkLayer->GetWaitFrameTransimissionMax());
+	pptNode->put("As", m_upNetworkLayer->GetAs());
+	pptNode->put("Ar", m_upNetworkLayer->GetAr());
+	pptNode->put("Bs", m_upNetworkLayer->GetBs());
+	pptNode->put("Br", m_upNetworkLayer->GetBr());
+	pptNode->put("Cs", m_upNetworkLayer->GetCs());
+	pptNode->put("Cr", m_upNetworkLayer->GetCr());
 
 	pptNode = &ptChild.add("CApplicationLayer", "");
-	pptNode->put("TesterPhysicalAddress", m_pApplicationLayer->GetTesterPhysicalAddress());
-	pptNode->put("ECUPhysicalAddress", m_pApplicationLayer->GetECUPhysicalAddress());
-	pptNode->put("ECUFunctionalAddress", m_pApplicationLayer->GetECUFunctionalAddress());
-	pptNode->put("P2CANClient", m_pApplicationLayer->GetP2CANClient());
-	pptNode->put("P2SCANClient", m_pApplicationLayer->GetP2SCANClient());
-	pptNode->put("P3CANClientPhys", m_pApplicationLayer->GetP3CANClientPhys());
-	pptNode->put("P3CANClientFunc", m_pApplicationLayer->GetP3CANClientFunc());
-	pptNode->put("S3Client", m_pApplicationLayer->GetS3Client());
+	pptNode->put("TesterPhysicalAddress", m_upApplicationLayer->GetTesterPhysicalAddress());
+	pptNode->put("ECUPhysicalAddress", m_upApplicationLayer->GetECUPhysicalAddress());
+	pptNode->put("ECUFunctionalAddress", m_upApplicationLayer->GetECUFunctionalAddress());
+	pptNode->put("P2CANClient", m_upApplicationLayer->GetP2CANClient());
+	pptNode->put("P2SCANClient", m_upApplicationLayer->GetP2SCANClient());
+	pptNode->put("P3CANClientPhys", m_upApplicationLayer->GetP3CANClientPhys());
+	pptNode->put("P3CANClientFunc", m_upApplicationLayer->GetP3CANClientFunc());
+	pptNode->put("S3Client", m_upApplicationLayer->GetS3Client());
 
 	try
 	{
@@ -191,12 +199,12 @@ void CDiagnosticControl::ResetTiming()
 	m_dwStartTick = GetTickCount();
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color) const
 {
 	_AddWatchEntry(layerType, entryType, nID, lpszDescription, color);
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, const BYTEVector &vbyData, Color color) const
 {
 	CString csDescription;
 	for (BYTEVector::const_iterator iter = vbyData.cbegin(); iter != vbyData.cend(); ++iter)
@@ -210,21 +218,21 @@ void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType,
 	_AddWatchEntry(layerType, entryType, nID, csDescription, color);
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, UINT nDescriptionID, Color color) const
 {
 	CString csDescription;
 	csDescription.LoadString(nDescriptionID);
 	_AddWatchEntry(layerType, entryType, nID, csDescription, color);
 }
 
-void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color) const
+void CDiagnosticControl::AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, UINT nDescriptionID, int nData, Color color) const
 {
 	CString csDescription;
 	csDescription.Format(nDescriptionID, nData);
 	_AddWatchEntry(layerType, entryType, nID, csDescription, color);
 }
 
-void CDiagnosticControl::_AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color) const
+void CDiagnosticControl::_AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color) const
 {
 	CTIDCWatchWnd *pWatchWnd = NULL;
 	switch (layerType)

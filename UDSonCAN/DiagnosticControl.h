@@ -1,6 +1,8 @@
 #pragma once
 
-#include <vector>
+#include <memory>
+
+#include "DiagnosticType.h"
 
 #include "WatchWnd.h"
 
@@ -11,7 +13,6 @@ class CApplicationLayer;
 
 class CDiagnosticControl
 {
-	typedef std::vector<BYTE> BYTEVector;
 	typedef CTIDCWatchWnd::EntryType EntryType;
 	typedef CWatchWnd::Color Color;
 public:
@@ -37,11 +38,27 @@ public:
 
 	void ResetTiming();
 
-	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
-	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color = Color::Black) const;
-	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, Color color = Color::Black) const;
-	void AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, const Diagnostic::BYTEVector &vbyData, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, UINT nDescriptionID, Color color = Color::Black) const;
+	void AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black) const;
 protected:
+	std::unique_ptr<CPhysicalLayer> m_upPhysicalLayer;
+	std::unique_ptr<CDataLinkLayer> m_upDataLinkLayer;
+	std::unique_ptr<CNetworkLayer> m_upNetworkLayer;
+	std::unique_ptr<CApplicationLayer> m_upApplicationLayer;
+	
+	boost::signals2::connection m_connectionPhysicalLayerTrasnmit;
+	boost::signals2::connection m_connectionDataLinkLayerConfirm;
+	boost::signals2::connection m_connectionDataLinkLayerIndication;
+	boost::signals2::connection m_connectionDataLinkLayerRequest;
+	boost::signals2::connection m_connectionNetworkLayerConfirm;
+	boost::signals2::connection m_connectionNetworkLayerIndication;
+	boost::signals2::connection m_connectionNetworkLayerRequest;
+	boost::signals2::connection m_connectionApplicationLayerConfirm;
+	boost::signals2::connection m_connectionApplicationLayerIndication;
+	boost::signals2::connection m_connectionApplicationLayerFirstFrameIndication;
+
 	CPhysicalLayer		*m_pPhysicalLayer;
 	CDataLinkLayer		*m_pDataLinkLayer;
 	CNetworkLayer		*m_pNetworkLayer;
@@ -57,6 +74,6 @@ protected:
 
 	CStringA m_csaConfigFilename;
 
-	void _AddWatchEntry(LayerType layerType, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
+	void _AddWatchEntry(LayerType layerType, EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
 };
 

@@ -12,11 +12,14 @@
 #include "ApplicationLayerConfigDialog.h"
 #include "CANConfigDialog.h"
 #include "DiagnosticControl.h"
+#include "DiagnosticType.h"
 #include "MainFrm.h"
 #include "NetworkLayerConfigDialog.h"
 #include "TestDialog.h"
 #include "UDSonCANDoc.h"
 #include "UDSonCANView.h"
+
+using Diagnostic::BYTEVector;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

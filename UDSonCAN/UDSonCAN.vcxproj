@@ -57,6 +57,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(VisualStudioDir)\..\boost\boost_1_53_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BrowseInformation>true</BrowseInformation>
+      <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -120,6 +121,7 @@
     <ClInclude Include="DiagnosticService.h" />
     <ClInclude Include="DiagnosticStorage.h" />
     <ClInclude Include="DiagnosticControl.h" />
+    <ClInclude Include="DiagnosticType.h" />
     <ClInclude Include="NetworkLayer.h" />
     <ClInclude Include="NetworkLayerConfigDialog.h" />
     <ClInclude Include="PhysicalLayer.h" />

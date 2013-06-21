@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NetworkLayer.h"
+#include "DiagnosticType.h"
 #include "WatchWnd.h"
 
 class CDiagnosticControl;
@@ -25,14 +25,14 @@ public:
 	CApplicationLayer(void);
 	virtual ~CApplicationLayer(void);
 
-	INT32 GetTesterPhysicalAddress() const;
-	void SetTesterPhysicalAddress(INT32 nTesterPhysicalAddress);
+	UINT32 GetTesterPhysicalAddress() const;
+	void SetTesterPhysicalAddress(UINT32 nTesterPhysicalAddress);
 
-	INT32 GetECUPhysicalAddress() const;
-	void SetECUPhysicalAddress(INT32 nECUPhysicalAddress);
+	UINT32 GetECUPhysicalAddress() const;
+	void SetECUPhysicalAddress(UINT32 nECUPhysicalAddress);
 
-	INT32 GetECUFunctionalAddress() const;
-	void SetECUFunctionalAddress(INT32 nECUFunctionalAddress);
+	UINT32 GetECUFunctionalAddress() const;
+	void SetECUFunctionalAddress(UINT32 nECUFunctionalAddress);
 
 	UINT GetP2CANClient() const;
 	void SetP2CANClient(UINT nP2CANClient);
@@ -49,33 +49,33 @@ public:
 	UINT GetS3Client() const;
 	void SetS3Client(UINT nS3Client);
 
-	void FirstFrameIndication(INT32 nID, UINT nLength);
+	void FirstFrameIndication(UINT32 nID, UINT nLength);
 	// N_USData.confirm
-	void Confirm(CNetworkLayer::Result result);
-	void Confirm(INT32 nID, CNetworkLayer::Result result);
+	void Confirm(Diagnostic::NetworkLayerResult result);
 	// N_USData.indication
 	// 通知接收到数据，仅在收到单帧（SF）、完成（或失败）接收分段消息后调用。
-	void Indication(INT32 nID, const BYTEVector &vbyData, CNetworkLayer::Result result);
-	void Indication(CNetworkLayer::Result result);
+	void Indication(UINT32 nID, const Diagnostic::BYTEVector &vbyData, Diagnostic::NetworkLayerResult result);
 
-	void Request(const BYTEVector &vbyData) const;
+	void Request(const Diagnostic::BYTEVector &vbyData) const;
 
-	void SetNetworkLayer(CNetworkLayer &networkLayer);
+	boost::signals2::connection ConnectRequest(const Diagnostic::RequestSignal::slot_type &subscriber);
+
 	void SetDiagnosticControl(CDiagnosticControl &diagnosticControl);
 protected:
-	CNetworkLayer *m_pNetworkLayer;
+	Diagnostic::RequestSignal m_signalRequest;
+
 	CDiagnosticControl *m_pDiagnosticControl;
 	DiagnosticService::CServiceManager *m_pDiagnosticService;
 
-	INT32 m_nTesterPhysicalAddress;
-	INT32 m_nECUPhysicalAddress;
-	INT32 m_nECUFunctionalAddress;
+	UINT32 m_nTesterPhysicalAddress;
+	UINT32 m_nECUPhysicalAddress;
+	UINT32 m_nECUFunctionalAddress;
 
 	UINT m_anTimingParameters[4];				// 定时参数
 	UINT m_nTimingS3Client;
 
-	void _AddWatchEntry(EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
-	void _AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, Color color = Color::Black) const;
-	void _AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color = Color::Black) const;
-	void _AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black) const;
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color = Color::Black) const;
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, Color color = Color::Black) const;
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, const Diagnostic::BYTEVector &vbyData, Color color = Color::Black) const;
+	void _AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, int nData, Color color = Color::Black) const;
 };

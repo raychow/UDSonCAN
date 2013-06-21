@@ -1,12 +1,14 @@
 #include "stdafx.h"
 #include "PhysicalLayer.h"
 
-#include "DataLinkLayer.h"
+#include <boost/bind.hpp>
 
-#define _VERIFYDEVICEISOPENED()		if (!m_bDeviceOpened) { return FALSE; }
-#define _VERIFYDEVICEISNOTOPENED()	if (m_bDeviceOpened) { return FALSE; }
-#define _VERIFYCANISSTARTED()		if (!m_bCANStarted) { return FALSE; }
-#define _VERIFYCANISNOTSTARTED()	if (m_bCANStarted) { return FALSE; }
+using Diagnostic::BYTEVector;
+
+#define _VERIFYDEVICEISOPENED()		if (!m_bDeviceOpened)	{ return FALSE; }
+#define _VERIFYDEVICEISNOTOPENED()	if (m_bDeviceOpened)	{ return FALSE; }
+#define _VERIFYCANISSTARTED()		if (!m_bCANStarted)		{ return FALSE; }
+#define _VERIFYCANISNOTSTARTED()	if (m_bCANStarted)		{ return FALSE; }
 
 CPhysicalLayer::CPhysicalLayer(void)
 	: m_bDeviceOpened(FALSE)
@@ -16,11 +18,6 @@ CPhysicalLayer::CPhysicalLayer(void)
 	, m_dwDeviceReserved(0)
 	, m_dwCANIndex(0)
 	, m_nBaudRateType(0)
-	, m_pDataLinkLayer(NULL)
-	, m_pDiagnosticControl(NULL)
-	, m_pReceiveThread(NULL)
-	, m_pConfirmThread(NULL)
-	, m_eventExitReceive(FALSE, TRUE)
 	, m_lReceivedLength(0)
 {
 	ZeroMemory(&m_initConfig, sizeof(m_initConfig));
@@ -216,7 +213,7 @@ BOOL CPhysicalLayer::IsCANStarted() const
 	return m_bCANStarted;
 }
 
-BOOL CPhysicalLayer::Transmit(INT32 nID, const BYTEVector &vbyData, SendType sendType, BOOL bRemoteFrame, BOOL bExternFrame, BOOL bConfirmReserveAddress)
+BOOL CPhysicalLayer::Transmit(UINT32 nID, const BYTEVector &vbyData, Diagnostic::PhysicalLayerSendType sendType, BOOL bRemoteFrame, BOOL bExternFrame)
 {
 	_VERIFYDEVICEISOPENED();
 	_VERIFYCANISSTARTED();
@@ -236,24 +233,18 @@ BOOL CPhysicalLayer::Transmit(INT32 nID, const BYTEVector &vbyData, SendType sen
 	canObj[0].RemoteFlag = bRemoteFrame;
 	canObj[0].SendType = sendType;
 
-	CSingleLock lockTransmit(&m_csectionTransmit);
-	lockTransmit.Lock();
+	boost::lock_guard<boost::mutex> lockGuard(m_mutexConfirm);
 	if (VCI_Transmit(m_dwDeviceType, m_dwDeviceIndex, m_dwCANIndex, canObj, 1) == STATUS_OK)
 	{
 		// 输出物理层发送成功讯息
-		ConfirmBuffer *pConfirmBuffer = new ConfirmBuffer();
-		pConfirmBuffer->nID = nID;
-		pConfirmBuffer->byDataFirstFrame = vbyData.at(0);
-		pConfirmBuffer->bConfirmReverseAddress = bConfirmReserveAddress;
-		m_lpConfirmBuffer.push_back(pConfirmBuffer);
-		m_eventConfirm.SetEvent();
+		m_lstConfirm.push_back(nID);
+		m_condConfirm.notify_one();	// m_mutexConfirm 在 m_condConfirm.wait 期间应是解锁的。
 		return TRUE;	// Confirm
 	}
 	else
 	{
 		// TODO: 输出物理层发送失败讯息
 	}
-	lockTransmit.Lock();
 
 	return FALSE;
 }
@@ -263,164 +254,138 @@ BOOL CPhysicalLayer::_StartThread()
 	_VERIFYDEVICEISOPENED();
 	_VERIFYCANISSTARTED();
 
-	m_eventExitReceive.ResetEvent();
-	if (!m_pReceiveThread)
-	{
-		m_pReceiveThread = AfxBeginThread(_ReceiveThread, this, 0U, 0U, CREATE_SUSPENDED);
-		m_pReceiveThread->m_bAutoDelete = TRUE;
-		m_pReceiveThread->ResumeThread();
-	}
-	if (!m_pConfirmThread)
-	{
-		m_pConfirmThread = AfxBeginThread(_ConfirmThread, this, 0U, 0U, CREATE_SUSPENDED);
-		m_pConfirmThread->m_bAutoDelete = TRUE;
-		m_pConfirmThread->ResumeThread();
-	}
+	m_threadReceive = boost::thread(boost::bind(&CPhysicalLayer::_ReceiveThread, this));
+	m_threadConfirm = boost::thread(boost::bind(&CPhysicalLayer::_ConfirmThread, this));
 
 	return TRUE;
 }
 
 void CPhysicalLayer::_StopThread()
 {
-	m_eventExitReceive.SetEvent();
+	m_threadReceive.interrupt();
+	m_threadConfirm.interrupt();
 
-	UINT nUnexitedThreadsCount = 2;
-	HANDLE *phThreadsExited = new HANDLE[nUnexitedThreadsCount];
-	phThreadsExited[0] = m_eventConfirmThreadExited.m_hObject;
-	phThreadsExited[1] = m_eventReceiveThreadExited.m_hObject;
-	DWORD dwWaitResult = -1;
-	MSG msg;
-	while (nUnexitedThreadsCount)
-	{
-		dwWaitResult = MsgWaitForMultipleObjects(2, phThreadsExited, FALSE, INFINITE, QS_ALLINPUT);	// 等待所有线程退出。
-		switch (dwWaitResult)
-		{
-		case WAIT_OBJECT_0:
-			--nUnexitedThreadsCount;
-			break;
-		case WAIT_OBJECT_0 + 1:
-			--nUnexitedThreadsCount;
-			break;
-		case WAIT_OBJECT_0 + 2:
-			PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);  
-			DispatchMessage(&msg);
-			break;
-		}
-	}
-	delete [] phThreadsExited;
+	//UINT nUnexitedThreadsCount = 2;
+	//std::unique_ptr<HANDLE[]> upahandleThreadsExited(new HANDLE[nUnexitedThreadsCount]);
 
-	CSingleLock lockTransmit(&m_csectionTransmit);
-	lockTransmit.Lock();
-	while (!m_lpConfirmBuffer.empty())
-	{
-		delete m_lpConfirmBuffer.front();
-		m_lpConfirmBuffer.pop_front();
-	}
-	lockTransmit.Unlock();
+	boost::unique_lock<boost::mutex> uniqueLockCTE(m_mutexConfirmThreadExited);
+	boost::unique_lock<boost::mutex> uniqueLockRTE(m_mutexReceiveThreadExited);
+
+	m_condConfirmThreadExited.wait(uniqueLockCTE);
+	m_condReceiveThreadExited.wait(uniqueLockRTE);
+
+	//DWORD dwWaitResult = -1;
+	//MSG msg;
+	//while (nUnexitedThreadsCount)
+	//{
+	//	dwWaitResult = MsgWaitForMultipleObjects(2, upahandleThreadsExited.get(), FALSE, INFINITE, QS_ALLINPUT);	// 等待所有线程退出。
+	//	switch (dwWaitResult)
+	//	{
+	//	case WAIT_OBJECT_0:
+	//		--nUnexitedThreadsCount;
+	//		break;
+	//	case WAIT_OBJECT_0 + 1:
+	//		--nUnexitedThreadsCount;
+	//		break;
+	//	case WAIT_OBJECT_0 + 2:
+	//		PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);  
+	//		DispatchMessage(&msg);
+	//		break;
+	//	}
+	//}
 }
 
-UINT CPhysicalLayer::_ReceiveThread(LPVOID lpParam)
+void CPhysicalLayer::_ReceiveThread()
 {
-	CPhysicalLayer *pThis = static_cast<CPhysicalLayer *>(lpParam);
-	ASSERT(pThis->m_pDataLinkLayer);
-
-	DWORD dwWaitResult;
 	ULONG lReceivedLength;
 	// 清空 CAN 接收缓冲区；
-	VCI_ClearBuffer(pThis->m_dwDeviceIndex, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex);
+	VCI_ClearBuffer(m_dwDeviceIndex, m_dwDeviceIndex, m_dwCANIndex);
 	VCI_CAN_OBJ canObj[CANRECEIVECOUNT];
 	VCI_ERR_INFO errInfo;
-	do
+	try
 	{
+		while (TRUE)
+		{
 #ifdef TESTCODE
-		CSingleLock lockReceiveData(&pThis->m_csectionReceiveData);
-		lockReceiveData.Lock();
-		if (lReceivedLength = pThis->m_lReceivedLength)
-		{
-			pThis->m_lReceivedLength = 0;
-			canObj[0] = pThis->m_canObj;
-		}
-#elif
-		lReceivedLength = VCI_Receive(pThis->m_dwDeviceIndex, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex, canObj, CANRECEIVECOUNT, 0);
-#endif
-		if (lReceivedLength == CANRECEIVEFAILEDFALG)
-		{
-			// 如果没有读到数据，必须调用此函数来读取出当前的错误码。
-			VCI_ReadErrInfo(pThis->m_dwDeviceType, pThis->m_dwDeviceIndex, pThis->m_dwCANIndex, &errInfo);
-			// TODO: 输出 errInfo 包含的错误讯息。
-		}
-		else if (lReceivedLength)
-		{
-			for (ULONG i = 0; i != lReceivedLength; ++i)
+			CSingleLock lockReceiveData(&m_csectionReceiveData);
+			lockReceiveData.Lock();
+			if (lReceivedLength = m_lReceivedLength)
 			{
-				if (!canObj[i].RemoteFlag)
+				m_lReceivedLength = 0;
+				canObj[0] = m_canObj;
+			}
+#elif
+			lReceivedLength = VCI_Receive(m_dwDeviceIndex, m_dwDeviceIndex, m_dwCANIndex, canObj, CANRECEIVECOUNT, 0);
+#endif
+			if (lReceivedLength == CANRECEIVEFAILEDFALG)
+			{
+				// 如果没有读到数据，必须调用此函数来读取出当前的错误码。
+				VCI_ReadErrInfo(m_dwDeviceType, m_dwDeviceIndex, m_dwCANIndex, &errInfo);
+				// TODO: 输出 errInfo 包含的错误讯息。
+			}
+			else if (lReceivedLength)
+			{
+				for (ULONG i = 0; i != lReceivedLength; ++i)
 				{
-					TRACE(_T("\nPhysicalLayer::_ReceiveThread:\nData (Hex): "));
-					for (int j = 0; j != MAXDATALENGTH; ++j)
+					if (!canObj[i].RemoteFlag)
 					{
-						TRACE(_T("%X "), canObj[i].Data[j]);
-					}
-					TRACE(_T("\nDataLen: %d, ExternFlag: %d, ID: 0x%X, RemoteFlag: %d, SendType: %d\n"), canObj[i].DataLen, canObj[i].ExternFlag, canObj[i].ID, canObj[i].RemoteFlag, canObj[i].SendType);
+						TRACE(_T("\nPhysicalLayer::_ReceiveThread:\nData (Hex): "));
+						for (int j = 0; j != MAXDATALENGTH; ++j)
+						{
+							TRACE(_T("%X "), canObj[i].Data[j]);
+						}
+						TRACE(_T("\nDataLen: %d, ExternFlag: %d, ID: 0x%X, RemoteFlag: %d, SendType: %d\n"), canObj[i].DataLen, canObj[i].ExternFlag, canObj[i].ID, canObj[i].RemoteFlag, canObj[i].SendType);
 
-					// 通知链路层
-					BYTEVector vbyData(canObj[i].Data, canObj[i].Data + canObj[i].DataLen);
-					pThis->m_pDataLinkLayer->Indication(canObj[i].ID, vbyData);
+						// 通知链路层
+						BYTEVector vbyData(canObj[i].Data, canObj[i].Data + canObj[i].DataLen);
+						m_signalIndication(canObj[i].ID, vbyData);
+					}
 				}
 			}
-		}
-		lockReceiveData.Unlock();
-		dwWaitResult = WaitForSingleObject(pThis->m_eventExitReceive.m_hObject, CANRECEIVECYCLE);
-	} while (dwWaitResult != WAIT_OBJECT_0);
-	pThis->m_eventReceiveThreadExited.SetEvent();
-	pThis->m_pReceiveThread = NULL;
-	return 0;
-}
-
-UINT CPhysicalLayer::_ConfirmThread(LPVOID lpParam)
-{
-	CPhysicalLayer *pThis = static_cast<CPhysicalLayer *>(lpParam);
-	ASSERT(pThis->m_pConfirmThread);
-	ASSERT(pThis->m_pDataLinkLayer);
-
-	DWORD dwWaitResult = -1;
-	HANDLE hEvents[] = { pThis->m_eventExitReceive.m_hObject, pThis->m_eventConfirm.m_hObject };
-	CSingleLock lockTransmit(&pThis->m_csectionTransmit);
-	ConfirmBuffer *pConfirmBuffer;
-
-	while (dwWaitResult != WAIT_OBJECT_0)
-	{
-		dwWaitResult = WaitForMultipleObjects(sizeof(hEvents) / sizeof(HANDLE), hEvents, FALSE, INFINITE);
-
-		if (dwWaitResult == WAIT_OBJECT_0 + 1)
-		{
-			lockTransmit.Lock();
-			if (!pThis->m_lpConfirmBuffer.empty())
-			{
-				pConfirmBuffer = pThis->m_lpConfirmBuffer.front();
-				pThis->m_lpConfirmBuffer.pop_front();
-				TRACE(_T("\nPhysicalLayer::Confirm: 0x%X\n"), pConfirmBuffer->nID);
-				lockTransmit.Unlock();
-				pThis->m_pDataLinkLayer->Confirm(pConfirmBuffer->nID, pConfirmBuffer->byDataFirstFrame, pConfirmBuffer->bConfirmReverseAddress);
-				delete pConfirmBuffer;
-				lockTransmit.Lock();
-			}
-			lockTransmit.Unlock();
+			lockReceiveData.Unlock();
+			boost::this_thread::sleep(boost::posix_time::microseconds(CANRECEIVECYCLE));
 		}
 	}
-	pThis->m_eventConfirmThreadExited.SetEvent();
-	pThis->m_pConfirmThread = NULL;
-	return 0;
+	catch (const boost::thread_interrupted &)
+	{
+		m_condReceiveThreadExited.notify_all();
+	}
 }
 
-
-void CPhysicalLayer::SetDataLinkLayer(CDataLinkLayer &dataLinkLayer)
+void CPhysicalLayer::_ConfirmThread()
 {
-	m_pDataLinkLayer = &dataLinkLayer;
+	UINT32 nID;
+	try
+	{
+		boost::unique_lock<boost::mutex> uniqueLock(m_mutexConfirm);	// m_mutexConfirm 在 wait 之后仍保持锁定。
+		while (TRUE)
+		{
+			m_condConfirm.wait(uniqueLock);
+			if (!m_lstConfirm.empty())
+			{
+				nID = m_lstConfirm.front();
+				m_lstConfirm.pop_front();
+				TRACE(_T("\nPhysicalLayer::Confirm: 0x%X\n"), nID);
+				uniqueLock.unlock();
+				m_signalConfirm();
+			}
+			uniqueLock.lock();
+		}
+	}
+	catch (const boost::thread_interrupted &)
+	{
+		m_condConfirmThreadExited.notify_all();
+	}
 }
 
-void CPhysicalLayer::SetDiagnosticControl(CDiagnosticControl &diagnosticControl)
+boost::signals2::connection CPhysicalLayer::ConnectIndication(const Diagnostic::IndicationSignal::slot_type &subscriber)
 {
-	m_pDiagnosticControl = &diagnosticControl;
+	return m_signalIndication.connect(subscriber);
+}
+
+boost::signals2::connection CPhysicalLayer::ConnectConfirm(const Diagnostic::ConfirmSignal::slot_type &subscriber)
+{
+	return m_signalConfirm.connect(subscriber);
 }
 
 #ifdef TESTCODE

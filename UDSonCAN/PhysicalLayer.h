@@ -1,18 +1,14 @@
 #pragma once
 
-#include <vector>
 #include <list>
+#include <vector>
 
 #include <boost/thread.hpp>
 
 #include "ControlCAN\ControlCAN.h"
+#include "DiagnosticType.h"
 
 #define TESTCODE		// 生成在无硬件支援时测试使用的虚拟代码。
-
-typedef std::vector<BYTE> BYTEVector;
-
-class CDataLinkLayer;
-class CDiagnosticControl;
 
 class CPhysicalLayer
 {
@@ -23,14 +19,6 @@ public:
 		CANRECEIVECOUNT			= 10,			// 每次最多接收帧数。
 		CANRECEIVECYCLE			= 10,			// 接收周期。
 		CANRECEIVEFAILEDFALG	= 0xFFFFFFFF	// 接收失败标志。
-	};
-
-	enum SendType
-	{
-		Normal		= 0,
-		Single,
-		LoopBack,
-		SingleLoopBack,
 	};
 
 	CPhysicalLayer(void);
@@ -76,10 +64,10 @@ public:
 	BOOL ResetCAN();
 	BOOL IsCANStarted() const;
 
-	BOOL Transmit(INT32 nID, const BYTEVector &vbyData, SendType sendType = SendType::Normal, BOOL bRemoteFrame = FALSE, BOOL bExternFrame = FALSE, BOOL bConfirmReserveAddress = FALSE);
+	BOOL Transmit(UINT32 nID, const Diagnostic::BYTEVector &vbyData, Diagnostic::PhysicalLayerSendType sendType = Diagnostic::PhysicalLayerSendType::Normal, BOOL bRemoteFrame = FALSE, BOOL bExternFrame = FALSE);
 	
-	void SetDataLinkLayer(CDataLinkLayer &dataLinkLayer);
-	void SetDiagnosticControl(CDiagnosticControl &diagnosticControl);
+	boost::signals2::connection ConnectIndication(const Diagnostic::IndicationSignal::slot_type &subscriber);
+	boost::signals2::connection ConnectConfirm(const Diagnostic::ConfirmSignal::slot_type &subscriber);
 
 #ifdef TESTCODE
 	CCriticalSection m_csectionReceiveData;
@@ -87,13 +75,7 @@ public:
 	ULONG m_lReceivedLength;
 #endif
 protected:
-	struct ConfirmBuffer
-	{
-		INT32 nID;						// 待 Confirm 的 ID。
-		BYTE byDataFirstFrame;			// 数据第一帧，用于验证扩展地址。
-		BOOL bConfirmReverseAddress;	// Confirm 时反转源地址与目标地址，针对 FC。
-	};
-	typedef std::list<ConfirmBuffer *> PConfirmBufferList;
+	typedef std::list<UINT32> ConfirmList;
 
 	BOOL m_bDeviceOpened;
 	BOOL m_bCANStarted;
@@ -107,28 +89,27 @@ protected:
 
 	VCI_INIT_CONFIG m_initConfig;
 	
-	CDataLinkLayer *m_pDataLinkLayer;
-	CDiagnosticControl *m_pDiagnosticControl;
-	
-	CWinThread *m_pReceiveThread;
+	Diagnostic::IndicationSignal m_signalIndication;
+	Diagnostic::ConfirmSignal m_signalConfirm;
+
+	boost::thread m_threadReceive;
 	BOOL _StartThread();
 	void _StopThread();
 
-	static UINT _ReceiveThread(LPVOID lpParam);
+	void _ReceiveThread();
 
-	CCriticalSection m_csectionTransmit;
-	PConfirmBufferList m_lpConfirmBuffer;
-	CEvent m_eventConfirm;
-	CWinThread *m_pConfirmThread;
+	ConfirmList m_lstConfirm;
+	boost::condition_variable m_condConfirm;
+	boost::mutex m_mutexConfirm;
+	boost::thread m_threadConfirm;
 	/***************************************************************
-	 * 验证线程，防止出现过深函数调用栈:
-	 * 例如，网络层发送连续帧，若在物理层立即返回，则网络层立即发送
-	 * 下个连续帧，导致调用栈过深。
+	 * 验证线程，实现定时要求验证作为线程。
 	 ***************************************************************/
-	static UINT _ConfirmThread(LPVOID lpParam);
+	void _ConfirmThread();
 
-	CEvent m_eventExitReceive;
-	CEvent m_eventConfirmThreadExited;
-	CEvent m_eventReceiveThreadExited;
+	boost::condition_variable m_condConfirmThreadExited;
+	boost::mutex m_mutexConfirmThreadExited;
+	boost::condition_variable m_condReceiveThreadExited;
+	boost::mutex m_mutexReceiveThreadExited;
 };
 

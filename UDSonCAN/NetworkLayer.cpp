@@ -3,8 +3,6 @@
 
 #include <algorithm>
 
-#include "ApplicationLayer.h"
-#include "DataLinkLayer.h"
 #include "DiagnosticControl.h"
 #include "resource.h"
 
@@ -12,6 +10,8 @@ using std::lock_guard;
 using std::mutex;
 using std::recursive_mutex;
 using std::unique_lock;
+
+using Diagnostic::BYTEVector;
 
 CNetworkLayer::MessageBuffer::MessageBuffer()
 	: status(Status::Idle)
@@ -73,13 +73,12 @@ CNetworkLayer::CNetworkLayer(void)
 	: m_bySeparationTimeMin(0)
 	, m_byBlockSize(0xFF)
 	, m_nWaitFrameTransimissionMax(0)
-	, m_pApplicationLayer(NULL)
-	, m_pDataLinkLayer(NULL)
 	, m_pTimingThread(NULL)
 	, m_eventTiming(FALSE, TRUE)
 	, m_eventStopThread(FALSE, TRUE)
 {
 	ZeroMemory(m_anTimingParameters, sizeof(m_anTimingParameters));
+	_StartThread();
 }
 
 CNetworkLayer::~CNetworkLayer(void)
@@ -178,13 +177,13 @@ void CNetworkLayer::SetWaitFrameTransimissionMax(UINT nWaitFrameTransimissionMax
 	m_nWaitFrameTransimissionMax = nWaitFrameTransimissionMax;
 }
 
-BOOL CNetworkLayer::Request(INT32 nID, const BYTEVector &vbyData)
+void CNetworkLayer::Request(UINT32 nID, const BYTEVector &vbyData)
 {
 	if (!_FillBuffer(Status::TransmitInProgress, nID, vbyData))	// 当前尚有未完成的发送任务。
 	{
-		return FALSE;
+		return;
 	}
-	return _Request();
+	_Request();
 	//if (vbyData.size() < DIAGNOSTICSFRAMEDATALENGTH)
 	//{
 	//	return _Request(PCIType::SingleFrame, nID, vbyData);
@@ -195,7 +194,7 @@ BOOL CNetworkLayer::Request(INT32 nID, const BYTEVector &vbyData)
 	//}
 }
 
-BOOL CNetworkLayer::_FillBuffer(Status status, INT32 nID, const BYTEVector &vbyData)
+BOOL CNetworkLayer::_FillBuffer(Status status, UINT32 nID, const BYTEVector &vbyData)
 {
 	std::unique_lock<recursive_mutex> ul(m_messageBuffer.rmutexMessageBuffer, std::try_to_lock);
 	if (!ul.owns_lock() || m_messageBuffer.IsBusy())
@@ -223,10 +222,8 @@ BOOL CNetworkLayer::_FillBuffer(Status status, INT32 nID, const BYTEVector &vbyD
 	return TRUE;
 }
 
-BOOL CNetworkLayer::_Request()
+void CNetworkLayer::_Request()
 {
-	ASSERT(m_pDataLinkLayer);
-
 	TRACE(_T("\nNetworkLayer::_Request.\n"));
 	// _AddWatchEntry(EntryType::Transmit, nID, IDS_NETWORKLAYERWATCH_REQUEST);
 
@@ -236,7 +233,7 @@ BOOL CNetworkLayer::_Request()
 	{
 		TRACE(_T("Status is incorrect.\n"));
 		ASSERT(FALSE);
-		return FALSE;
+		return;
 	}
 
 	// Data
@@ -288,7 +285,7 @@ BOOL CNetworkLayer::_Request()
 		{
 			TRACE(_T("No more remainder frame or data, request aborted.\n"));
 			_AddWatchEntry(EntryType::Transmit, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTNOREMAINDERFRAME, Color::Red);
-			return FALSE;
+			return;
 		}
 		byPCIFirst = byPCIFirst | m_messageBuffer.byExpectedSequenceNumber;           
 		m_messageBuffer.byExpectedSequenceNumber = (m_messageBuffer.byExpectedSequenceNumber + 1) % 0x10;
@@ -323,13 +320,11 @@ BOOL CNetworkLayer::_Request()
 
 	ul.unlock();
 
-	return m_pDataLinkLayer->Request(m_messageBuffer.nID, vbyPDU);
+	m_signalRequest(m_messageBuffer.nID, vbyPDU);
 }
 
-void CNetworkLayer::Confirm(INT32 nID)
+void CNetworkLayer::Confirm()
 {
-	ASSERT(m_pApplicationLayer);
-
 	TRACE(_T("CNetworkLayer::Confirm\n"));
 
 	_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_CONFIRM);
@@ -347,7 +342,7 @@ void CNetworkLayer::Confirm(INT32 nID)
 	{
 	case PCIType::SingleFrame:
 		TRACE(_T("SingleFrame.\n"));
-		m_pApplicationLayer->Confirm(m_messageBuffer.nID, Result::N_OK);
+		m_signalConfirm(Diagnostic::NetworkLayerResult::N_OK);
 		m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
 		_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTFINISHED, Color::Green);
 		m_messageBuffer.ClearMessage();
@@ -384,7 +379,7 @@ void CNetworkLayer::Confirm(INT32 nID)
 		{
 			TRACE(_T("Multiframe request finished.\n"));
 			_AddWatchEntry(EntryType::Confirm, m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_REQUESTFINISHED, Color::Green);
-			m_pApplicationLayer->Confirm(m_messageBuffer.nID, Result::N_OK);
+			m_signalConfirm(Diagnostic::NetworkLayerResult::N_OK);
 			m_messageBuffer.ClearMessage();
 			//m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
 		}
@@ -400,10 +395,9 @@ void CNetworkLayer::Confirm(INT32 nID)
 	}
 }
 
-void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
+void CNetworkLayer::Indication(UINT32 nID, const BYTEVector &vbyData)
 {
-	ASSERT(m_pApplicationLayer);
-	TRACE(_T("CNetworkLayer::Indication: 0x%X\n"), nID);
+	TRACE(_T("CNetworkLayer::Indication.\n"));
 
 	BYTE byPCIFirst = vbyData.at(0);
 	BYTE byPCIType = (byPCIFirst & 0xF0) >> 4;
@@ -428,7 +422,7 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 		case Status::ReceiveInProgress:
 			TRACE(_T("ReceiveInProgress, discard previous receive.\n"));
 			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDPREVIOUSRECEIVE, Color::Red);
-			m_pApplicationLayer->Indication(Result::N_UNEXP_PDU);
+			m_signalIndication(nID, m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_UNEXP_PDU);
 			m_messageBuffer.ClearMessage();
 			break;
 		case Status::Idle:
@@ -448,7 +442,7 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 		case Status::ReceiveInProgress:
 			TRACE(_T("ReceiveInProgress, discard previous receive.\n"));
 			_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEINPROGRESSDISCARDRECEIVEDFRAME, Color::Red);
-			m_pApplicationLayer->Indication(Result::N_UNEXP_PDU);
+			m_signalIndication(nID, m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_UNEXP_PDU);
 			m_messageBuffer.ClearMessage();
 			break;
 		case Status::Idle:
@@ -555,7 +549,7 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 
 			nDataIndex = 1;
 			m_messageBuffer.vbyData.insert(m_messageBuffer.vbyData.cend(), vbyData.cbegin() + nDataIndex, vbyData.cbegin() + nDataIndex + nApplicationLayerDataLength);
-			m_pApplicationLayer->Indication(nID, m_messageBuffer.vbyData, Result::N_OK);
+			m_signalIndication(nID, m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_OK);
 			_AddWatchEntry(EntryType::Confirm, nID, IDS_NETWORKLAYERWATCH_RECEIVEFINISHED, Color::Green);
 			break;
 		}
@@ -591,7 +585,7 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 			m_messageBuffer.pciType = PCIType::FlowControl;
 			m_messageBuffer.nRemainderFrameCount = 0;
 			m_messageBuffer.byExpectedSequenceNumber = 1;
-			m_pApplicationLayer->FirstFrameIndication(nID, nApplicationLayerDataLength);
+			m_signalFirstFrameIndication(nID, nApplicationLayerDataLength);
 
 			_Request();
 			break;
@@ -605,7 +599,7 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 			{
 				TRACE(_T("Wrong SN, discard this frame.\n"));
 				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_INVALIDSN, Color::Red);
-				m_pApplicationLayer->Indication(Result::N_WRONG_SN);
+				m_signalIndication(nID, m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_WRONG_SN);
 				return;
 			}
 			m_messageBuffer.byExpectedSequenceNumber = (m_messageBuffer.byExpectedSequenceNumber + 1) % 0x10;
@@ -624,7 +618,7 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_RECEIVEFINISHED, Color::Green);
 				BYTEVector vbyData = m_messageBuffer.vbyData;
 				m_messageBuffer.ClearMessage();
-				m_pApplicationLayer->Indication(nID, m_messageBuffer.vbyData, Result::N_OK);
+				m_signalIndication(nID, m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_OK);
 			}
 			else
 			{
@@ -680,14 +674,14 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 				TRACE(_T("FlowControl: Overflow.\n"));
 				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_FLOWCONTROL_OVERFLOW, Color::Red);
 				m_messageBuffer.ClearMessage();
-				m_pApplicationLayer->Confirm(nID, Result::N_BUFFER_OVFLW);
+				m_signalConfirm(Diagnostic::NetworkLayerResult::N_BUFFER_OVFLW);
 				return;
 			default:
 				TRACE(_T("FlowControl: Invalid flowcontrol.\n"));
 				_AddWatchEntry(EntryType::Receive, nID, IDS_NETWORKLAYERWATCH_FLOWCONTROL_INVALID, Color::Red);
 				m_messageBuffer.ResetTiming(TimingType::Idle, m_eventTiming);
 				m_messageBuffer.ClearMessage();
-				m_pApplicationLayer->Confirm(nID, Result::N_INVALID_FS);
+				m_signalConfirm(Diagnostic::NetworkLayerResult::N_INVALID_FS);
 				return;
 			}
 			break;
@@ -696,31 +690,35 @@ void CNetworkLayer::Indication(INT32 nID, const BYTEVector &vbyData)
 	return;
 }
 
-void CNetworkLayer::SetApplicationLayer(CApplicationLayer &applicationLayer)
-{
-	m_pApplicationLayer = &applicationLayer;
-
-	_StopThread();
-	_StartThread();
-}
-
-void CNetworkLayer::SetDataLinkLayer(CDataLinkLayer &dataLinkLayer)
-{
-	m_pDataLinkLayer = &dataLinkLayer;
-}
-
 void CNetworkLayer::SetDiagnosticControl(CDiagnosticControl &diagnosticControl)
 {
 	m_pDiagnosticControl = &diagnosticControl;
 }
 
+boost::signals2::connection CNetworkLayer::ConnectIndication(const Diagnostic::IndicationASignal::slot_type &subscriber)
+{
+	return m_signalIndication.connect(subscriber);
+}
+
+boost::signals2::connection CNetworkLayer::ConnectFirstFrameIndication(const Diagnostic::IndicationAFSignal::slot_type &subscriber)
+{
+	return m_signalFirstFrameIndication.connect(subscriber);
+}
+
+boost::signals2::connection CNetworkLayer::ConnectConfirm(const Diagnostic::ConfirmASignal::slot_type &subscriber)
+{
+	return m_signalConfirm.connect(subscriber);
+}
+
+boost::signals2::connection CNetworkLayer::ConnectRequest(const Diagnostic::RequestSignal::slot_type &subscriber)
+{
+	return m_signalRequest.connect(subscriber);
+}
+
 UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 {
 	CNetworkLayer *pThis = static_cast<CNetworkLayer *>(lpParam);
-	CApplicationLayer *pApplicationLayer = pThis->m_pApplicationLayer;
-	ASSERT(pApplicationLayer);
 	HANDLE hEvents[] = { pThis->m_eventStopThread, pThis->m_eventTiming };
-	unique_lock<recursive_mutex> ul(pThis->m_messageBuffer.rmutexMessageBuffer, std::defer_lock);
 	DWORD dwWaitResult = -1;
 	DWORD dwTimingTickSpan;	// 为兼容 XP，存在几率极小的 49.7 天归零问题。
 	BOOL bTimeout;
@@ -731,7 +729,8 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 		if (dwWaitResult == WAIT_OBJECT_0 + 1)
 		{
 			WaitForSingleObject(pThis->m_eventStopThread.m_hObject, TIMINGCYCLE);
-			if (ul.try_lock())
+			unique_lock<recursive_mutex> ul(pThis->m_messageBuffer.rmutexMessageBuffer, std::try_to_lock);
+			if (ul.owns_lock())
 			{
 				if (!pThis->m_messageBuffer.IsBusy() || pThis->m_messageBuffer.timingType == TimingType::Idle)
 				{
@@ -749,17 +748,17 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 					{
 					case TimingType::As:
 						TRACE(_T("\nNetworkLayer.Timeout.As\n"));
-						pApplicationLayer->Confirm(Result::N_TIMEOUT_A);
+						pThis->m_signalConfirm(Diagnostic::NetworkLayerResult::N_TIMEOUT_A);
 						pThis->_AddWatchEntry(EntryType::Transmit, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_AS, Color::Red);
 						break;
 					case TimingType::Ar:
 						TRACE(_T("\nNetworkLayer.Timeout.Ar\n"));
-						pApplicationLayer->Indication(Result::N_TIMEOUT_A);
+						pThis->m_signalIndication(pThis->m_messageBuffer.nID, pThis->m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_TIMEOUT_A);
 						pThis->_AddWatchEntry(EntryType::Receive, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_AR, Color::Red);
 						break;
 					case TimingType::Bs:
 						TRACE(_T("\nNetworkLayer.Timeout.Bs\n"));
-						pApplicationLayer->Confirm(Result::N_TIMEOUT_Bs);
+						pThis->m_signalConfirm(Diagnostic::NetworkLayerResult::N_TIMEOUT_Bs);
 						pThis->_AddWatchEntry(EntryType::Transmit, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_BS, Color::Red);
 						break;
 					case TimingType::Br:
@@ -778,7 +777,7 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 						break;
 					case TimingType::Cr:
 						TRACE(_T("\nNetworkLayer.Timeout.Cr\n"));
-						pApplicationLayer->Indication(Result::N_TIMEOUT_Cr);
+						pThis->m_signalIndication(pThis->m_messageBuffer.nID, pThis->m_messageBuffer.vbyData, Diagnostic::NetworkLayerResult::N_TIMEOUT_Cr);
 						pThis->_AddWatchEntry(EntryType::Receive, pThis->m_messageBuffer.nID, IDS_NETWORKLAYERWATCH_TIMEOUT_CR, Color::Red);
 						break;
 					}
@@ -787,7 +786,6 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 						pThis->m_messageBuffer.ClearMessage();
 					}
 				}
-				ul.unlock();
 			}
 		}
 	}
@@ -796,7 +794,7 @@ UINT CNetworkLayer::_TimingThread(LPVOID lpParam)
 	return 0;
 }
 
-void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, Color color)
+void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, Color color)
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -804,7 +802,7 @@ void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescrip
 	}
 }
 
-void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color)
+void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, const BYTEVector &vbyData, Color color)
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -812,7 +810,7 @@ void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVec
 	}
 }
 
-void CNetworkLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color)
+void CNetworkLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, int nData, Color color)
 {
 	if (NULL != m_pDiagnosticControl)
 	{

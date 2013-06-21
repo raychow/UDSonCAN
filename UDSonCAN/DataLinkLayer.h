@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-typedef std::vector<BYTE> BYTEVector;
+#include "DiagnosticType.h"
 
 class CPhysicalLayer;
 class CNetworkLayer;
@@ -12,18 +12,19 @@ class CDataLinkLayer
 {
 public:
 	// 15765-2: 7.1
-	BOOL Request(INT32 nID, const BYTEVector &vbyData, BOOL bReverseAddress = FALSE);
+	void Request(UINT32 nID, const Diagnostic::BYTEVector &vbyData);
 
 	// CPhysicalLayer.confirm
-	void Confirm(INT32 nID, BYTE byAddressExtension = 0, BOOL bReverseAddress = FALSE) const;
+	void Confirm() const;
 
 	// CPhysicalLayer.indication
-	void Indication(INT32 nID, const BYTEVector &vbyData) const;
+	void Indication(UINT32 nID, const Diagnostic::BYTEVector &vbyData) const;
 
-	void SetNodeAddress(INT32 nNodeAddress);
+	void SetNodeAddress(UINT32 nNodeAddress);
 
-	void SetPhysicalLayer(CPhysicalLayer &physicalLayer);
-	void SetNetworkLayer(CNetworkLayer &networkLayer);
+	boost::signals2::connection ConnectIndication(const Diagnostic::IndicationSignal::slot_type &subscriber);
+	boost::signals2::connection ConnectConfirm(const Diagnostic::ConfirmSignal::slot_type &subscriber);
+	boost::signals2::connection ConnectTransmit(const Diagnostic::PhysicalLayerTrasnmitSignal::slot_type &subscriber);
 
 	CDataLinkLayer(void);
 	virtual ~CDataLinkLayer(void);
@@ -33,10 +34,11 @@ protected:
 		DLCREQUIRED = 8
 	};
 
-	INT32 m_nNodeAddress;
+	UINT32 m_nNodeAddress;
 
-	CPhysicalLayer *m_pPhysicalLayer;
-	CNetworkLayer *m_pNetworkLayer;
+	Diagnostic::IndicationSignal m_signalIndication;
+	Diagnostic::ConfirmSignal m_signalConfirm;
+	Diagnostic::PhysicalLayerTrasnmitSignal m_signalTransmit;
 
 	UINT m_nBufferedID;
 	CCriticalSection m_csectionBufferedID;

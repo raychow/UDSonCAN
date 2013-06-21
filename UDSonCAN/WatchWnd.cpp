@@ -165,7 +165,7 @@ CTIDCWatchWnd::~CTIDCWatchWnd()
 }
 
 
-void CTIDCWatchWnd::AddEntry(DWORD dwTick, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color)
+void CTIDCWatchWnd::AddEntry(DWORD dwTick, EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color)
 {
 	Entry *entry = new Entry();
 	entry->dwTick = dwTick;

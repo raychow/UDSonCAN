@@ -23,7 +23,7 @@ protected:
 	CDiagnosticControl &m_diagnosticControl;
 
 	void _MessagePrompt(BOOL bResult) const;
-	INT32 _GetNrequestID() const;
+	UINT32 _GetNrequestID() const;
 
 	static UINT FakeCFThread(LPVOID lpParam);
 	CWinThread *m_pFakeCFThread;

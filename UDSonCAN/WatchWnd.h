@@ -83,7 +83,7 @@ public:
 	{
 		DWORD dwTick;
 		EntryType entryType;
-		INT32 nID;
+		UINT32 nID;
 		CString csDescription;
 		// LPCTSTR lpszDescription;
 		Color color;
@@ -92,7 +92,7 @@ public:
 
 // ²Ù×÷
 public:
-	void AddEntry(DWORD dwTick, EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color = Color::Black);
+	void AddEntry(DWORD dwTick, EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color = Color::Black);
 // ÊµÏÖ
 protected:
 	PEntryList m_lpEntry;

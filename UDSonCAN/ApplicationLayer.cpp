@@ -4,6 +4,8 @@
 #include "DiagnosticControl.h"
 #include "DiagnosticService.h"
 
+using Diagnostic::BYTEVector;
+
 CApplicationLayer::CApplicationLayer(void)
 	: m_nTesterPhysicalAddress(0)
 	, m_nECUPhysicalAddress(0)
@@ -18,32 +20,32 @@ CApplicationLayer::~CApplicationLayer(void)
 {
 }
 
-INT32 CApplicationLayer::GetTesterPhysicalAddress() const
+UINT32 CApplicationLayer::GetTesterPhysicalAddress() const
 {
 	return m_nTesterPhysicalAddress;
 }
 
-void CApplicationLayer::SetTesterPhysicalAddress(INT32 nTesterPhysicalAddress)
+void CApplicationLayer::SetTesterPhysicalAddress(UINT32 nTesterPhysicalAddress)
 {
 	m_nTesterPhysicalAddress = nTesterPhysicalAddress;
 }
 
-INT32 CApplicationLayer::GetECUPhysicalAddress() const
+UINT32 CApplicationLayer::GetECUPhysicalAddress() const
 {
 	return m_nECUPhysicalAddress;
 }
 
-void CApplicationLayer::SetECUPhysicalAddress(INT32 nECUPhysicalAddress)
+void CApplicationLayer::SetECUPhysicalAddress(UINT32 nECUPhysicalAddress)
 {
 	m_nECUPhysicalAddress = nECUPhysicalAddress;
 }
 
-INT32 CApplicationLayer::GetECUFunctionalAddress() const
+UINT32 CApplicationLayer::GetECUFunctionalAddress() const
 {
 	return m_nECUPhysicalAddress;
 }
 
-void CApplicationLayer::SetECUFunctionalAddress(INT32 nECUFunctionalAddress)
+void CApplicationLayer::SetECUFunctionalAddress(UINT32 nECUFunctionalAddress)
 {
 	m_nECUFunctionalAddress = nECUFunctionalAddress;
 }
@@ -98,27 +100,17 @@ void CApplicationLayer::SetS3Client(UINT nS3Client)
 	m_nTimingS3Client = nS3Client;
 }
 
-void CApplicationLayer::FirstFrameIndication(INT32 nID, UINT nLength)
+void CApplicationLayer::FirstFrameIndication(UINT32 nID, UINT nLength)
 {
 
 }
 
-void CApplicationLayer::Confirm(CNetworkLayer::Result result)
+void CApplicationLayer::Confirm(Diagnostic::NetworkLayerResult result)
 {
 
 }
 
-void CApplicationLayer::Confirm(INT32 nID, CNetworkLayer::Result result)
-{
-
-}
-
-void CApplicationLayer::Indication(INT32 nID, const BYTEVector &vbyData, CNetworkLayer::Result result)
-{
-
-}
-
-void CApplicationLayer::Indication(CNetworkLayer::Result result)
+void CApplicationLayer::Indication(UINT32 nID, const BYTEVector &vbyData, Diagnostic::NetworkLayerResult result)
 {
 
 }
@@ -136,12 +128,12 @@ void CApplicationLayer::Request(const BYTEVector &vbyData) const
 	{
 		_AddWatchEntry(EntryType::Transmit, m_nECUPhysicalAddress, acsEntries.GetAt(i));	// TODO: 显然此处有问题，要根据具体服务判断。
 	}
-	m_pNetworkLayer->Request(m_nECUPhysicalAddress, vbyData);
+	m_signalRequest(m_nECUPhysicalAddress, vbyData);
 }
 
-void CApplicationLayer::SetNetworkLayer(CNetworkLayer &networkLayer)
+boost::signals2::connection CApplicationLayer::ConnectRequest(const Diagnostic::RequestSignal::slot_type &subscriber)
 {
-	m_pNetworkLayer = &networkLayer;
+	return m_signalRequest.connect(subscriber);
 }
 
 void CApplicationLayer::SetDiagnosticControl(CDiagnosticControl &diagnosticControl)
@@ -149,7 +141,7 @@ void CApplicationLayer::SetDiagnosticControl(CDiagnosticControl &diagnosticContr
 	m_pDiagnosticControl = &diagnosticControl;
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, LPCTSTR lpszDescription, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, LPCTSTR lpszDescription, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -157,7 +149,7 @@ void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, LPCTSTR l
 	}
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -165,7 +157,7 @@ void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDes
 	}
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, const BYTEVector &vbyData, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, const BYTEVector &vbyData, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
@@ -173,7 +165,7 @@ void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, const BYT
 	}
 }
 
-void CApplicationLayer::_AddWatchEntry(EntryType entryType, INT32 nID, UINT nDescriptionID, int nData, Color color) const
+void CApplicationLayer::_AddWatchEntry(EntryType entryType, UINT32 nID, UINT nDescriptionID, int nData, Color color) const
 {
 	if (NULL != m_pDiagnosticControl)
 	{
